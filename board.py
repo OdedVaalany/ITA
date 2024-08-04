@@ -27,6 +27,17 @@ class Board(object):
         self.__set_numbers()
 
     @property
+    def avilable_states(self) -> List[Tuple[int, int]]:
+        return np.argwhere(self.__mask == 0).tolist()
+
+    def get_actions(self, state: Tuple[int, int]) -> List[str]:
+        if self.__mask[state] == 0:
+            return ["reveal", "mark"]
+        elif self.__mask[state] == 2:
+            return ["unmark"]
+        return []
+
+    @property
     def size(self) -> Tuple[int, int]:
         return self.__size
 
@@ -42,13 +53,15 @@ class Board(object):
     def bombs(self) -> Set[Tuple[int, int]]:
         return self.__bombs
 
-    def __getitem__(self, key: Tuple[int, int]) -> str:
-        if self.__mask[key] == 0:
-            return "H"
-        elif self.__mask[key] == 2:
-            return "F"
-        else:
-            return str(self.__board[key])
+    def reveal_all(self) -> None:
+        self.__mask = np.ones(self.__size, dtype=int)
+        return self
+
+    def __getitem__(self, key: Tuple[int, int]) -> int:
+        tmp = self.__board.copy()
+        tmp[self.__mask == 0] = -1
+        tmp[self.__mask == 2] = -2
+        return (tmp[key])
 
     def __str__(self) -> str:
         return str(self.__board)
@@ -74,6 +87,16 @@ class Board(object):
                 v.append(np.count_nonzero(self.__board[max(
                     0, i-1):min(self.__size[0], i+2), max(0, j-1):min(self.__size[1], j+2)]))
         self.__board[x, y] = v
+
+    def apply_action(self, state: Tuple[int, int], action: str) -> None:
+        if action in self.get_actions(state):
+            if action == "reveal":
+                self.reveal(*state)
+            elif action == "mark":
+                self.mark(*state)
+            elif action == "unmark":
+                self.mark(*state)
+        return self
 
     def reveal(self, row: int, col: int) -> None:
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
@@ -103,6 +126,3 @@ class Board(object):
         plt.imshow(self.__mask, cmap='hot', interpolation='nearest')
         plt.show()
         return self
-
-
-# t = Board(10).plot()

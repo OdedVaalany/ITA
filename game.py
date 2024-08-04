@@ -1,109 +1,91 @@
-# import tkinter as tk
-import utils
+# Example file showing a basic pygame "game loop"
+import pygame
 from board import Board
-import random
-import os
-import tkinter as tk
-from PIL import Image, ImageTk
+from utils import *
+from time import time
+import numpy as np
+from KRagent import KR_agent
+from random import choice
 
 
-class Minesweeper:
+def format_time(number: float) -> str:
+    return f"{number//60:2.0f}:{number % 60:2.0f}"
 
-    master: tk.Tk
-    board: Board
-    rows: int
-    columns: int
 
-    def __init__(self, master, board):
+class UI:
+    def __init__(self, board: Board) -> None:
         self.board = board
-        self.master = master
-        self.rows, self.columns = board.size[0], board.size[1]
-        self.buttons = []
-        self.define_master()
-        self.load_images()
-        self.create_widgets()
+        self.height, self.width = board.size
+        self.screen = pygame.display.set_mode(
+            (self.width*BLOCK_SIZE, self.height*BLOCK_SIZE+50))
+        self.clock = pygame.time.Clock()
+        self.start_time = time()
+        pygame.font.init()
+        self.font = pygame.font.Font(None, 30)
+        self.running = True
 
-    def define_master(self):
-        self.master.title("Minesweeper")
-        self.master.resizable(False, False)
-        self.master.geometry(
-            f"{utils.BRICK_SIZE*self.columns}x{utils.BRICK_SIZE*self.rows}")
-        for i in range(self.rows):
-            self.master.grid_rowconfigure(i, weight=1)
-        for i in range(self.columns):
-            self.master.grid_columnconfigure(i, weight=1)
+    def draw_blocks(self):
+        for i in range(self.height):
+            for j in range(self.width):
+                imp = pygame.image.load(
+                    ASSETS_IMAGES[self.board[i, j]]).convert()
+                self.screen.blit(imp, (j*BLOCK_SIZE, i*BLOCK_SIZE))
 
-    def load_images(self):
-        self.images = {}
-        for key, val in utils.ASSETS_IMAGES.items():
-            self.images[key] = ImageTk.PhotoImage(
-                Image.open(val).resize((30, 30)))
+    def draw_text(self):
+        text = self.font.render(
+            f"Flags: {self.board.num_of_markers} \t Time: {format_time(time() - self.start_time)}", True, "black")
+        self.screen.blit(text, (0, self.height*BLOCK_SIZE + 10))
 
-    def create_widgets(self):
-        for r in range(0, self.rows):
-            row = []
-            for c in range(self.columns):
-                btn = tk.Label(self.master, width=1, height=1,
-                               bg="SystemButtonFace", image=self.images["H"])
-                btn.bind("<Button-1>", lambda e, r=r, c=c: self.on_click(r, c))
-                btn.bind("<Button-2>", lambda e, r=r,
-                         c=c: self.on_right_click(r, c))
-                btn.grid(row=r, column=c, sticky="nsew", padx=0, pady=0)
-                row.append(btn)
-            self.buttons.append(row)
+    def handle_click(self, event):
+        x, y = pygame.mouse.get_pos()
+        x = x // BLOCK_SIZE
+        y = y // BLOCK_SIZE
+        click_func = self.board.reveal
+        if event.button == 3:
+            click_func = self.board.mark
+        if x < self.width and y < self.height and y >= 0 and x >= 0:
+            if (self.board.is_bomb(y, x) and event.button == 1):
+                self.board.reveal_all()
+            else:
+                click_func(y, x)
 
-    def on_click(self, r, c):
-        board.reveal(r, c)
-        if board.is_bomb(r, c):
-            self.buttons[r][c].config(image=self.images["10"])
-            self.reveal_mines()
-            self.game_over("Game Over! You hit a mine.")
-        else:
-            self.buttons[r][c].config(image=self.images[str(board[r, c])])
-        for i in range(self.board.size[0]):
-            for j in range(self.board.size[1]):
-                if self.board[i, j] != "H":
-                    self.buttons[i][j].config(
-                        image=self.images[str(board[i, j])])
-                    # Here you can add more logic to reveal adjacent cells if there are no adjacent mines
+    def run(self):
+        while self.running:
+            # poll for events
+            # pygame.QUIT event means the user clicked X to close your window
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.handle_click(event)
+            # fill the screen with a color to wipe away anything from last frame
+            self.screen.fill("white")
+            self.draw_blocks()
+            self.draw_text()
+            pygame.display.flip()
 
-    def on_right_click(self, r, c):
-        board.mark(r, c)
-        self.buttons[r][c].config(image=self.images[self.board[r, c]])
+            # agent = KR_agent()
+            # for i in range(2, 13):
+            #     for j in range(2, 13):
+            #         agent.procees(board[i-2:i+3, j-2:j+3])
+            #         if agent.infer(f'{i}{j}N0'):
+            #             print(f'{i} {j}')
 
-    def reveal_mines(self):
-        for r, c in self.board.bombs:
-            self.buttons[r][c].config(image=self.images["10"])
-
-    def game_over(self, message):
-        for row in self.buttons:
-            for btn in row:
-                btn.bind("<Button-1>", lambda e: None)
-                btn.bind("<Button-2>", lambda e: None)
-        # Open popup with message and option to start a new game
-        self.popup = tk.Toplevel(self.master)
-        self.popup.title("Game Over")
-        message_label = tk.Label(self.popup, text=message)
-        message_label.pack()
-        new_game_button = tk.Button(
-            self.popup, text="New Game", command=self.start_new_game)
-        new_game_button.pack()
-
-    def start_new_game(self):
-        # Reset the game by creating a new board and restarting the GUI
-        self.popup.destroy()
-        self.board.reset()
-        for r, row in enumerate(self.buttons):
-            for c, btn in enumerate(row):
-                btn["image"] = self.images["H"]
-                btn.bind("<Button-1>", lambda e, r=r, c=c: self.on_click(r, c))
-                btn.bind("<Button-2>", lambda e, r=r,
-                         c=c: self.on_right_click(r, c))
+            self.clock.tick(60)
 
 
 if __name__ == "__main__":
-    board = Board((10, 20))
-    root = tk.Tk()
-    root.title("Minesweeper")
-    game = Minesweeper(root, board)
-    root.mainloop()
+    # pygame setup
+    # board = Board((15, 15))
+    # ui = UI(board)
+    # ui.run()
+    agent = KR_agent()
+    b = [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, EMPTY, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+    ]
+    [print(k) for k in agent.procees(b)]
+    print(agent.infer("22N0"))
