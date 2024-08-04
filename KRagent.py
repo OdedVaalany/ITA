@@ -8,10 +8,8 @@ B represent a bomb
 F represent a flagged cell
 H represent a hidden cell
 
-if H and neighbors of N0 then safe
-if H and neighbors of N* and N* has * Flags then safe
-if H and neighbors of N* and i'm the only hidden neighbot of N* cell then bomb
-if N* and one of my neighbors is F then N(*-1)
+11N1 + 12F => 22N0
+
 
 0 0 0 0 F
 0 0 0 1 0

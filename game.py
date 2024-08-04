@@ -76,16 +76,16 @@ class UI:
 
 if __name__ == "__main__":
     # pygame setup
-    # board = Board((15, 15))
-    # ui = UI(board)
-    # ui.run()
+    board = Board((15, 15))
+    ui = UI(board)
+    ui.run()
     agent = KR_agent()
-    b = [
-        [0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 0],
-        [0, 1, EMPTY, 1, 0],
-        [0, 1, 1, 1, 0],
-        [0, 0, 0, 0, 0],
-    ]
-    [print(k) for k in agent.procees(b)]
-    print(agent.infer("22N0"))
+    # b = [
+    #     [0, 0, 0, 0, 0],
+    #     [0, 1, 1, 1, 0],
+    #     [0, 1, EMPTY, 1, 0],
+    #     [0, 1, 1, 1, 0],
+    #     [0, 0, 0, 0, 0],
+    # ]
+    # [print(k) for k in agent.procees(b)]
+    # print(agent.infer("22N0"))
