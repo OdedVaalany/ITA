@@ -3,11 +3,18 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from typing import *
-
+import copy
 
 class Board(object):
+    
 
     BOMB_VALUE = 10
+    MARK_VALUE = 20
+    HIDDEN_VALUE = -1
+
+    HIDDEN_MASK_VALUE = 0
+    REVEALED_MASK_VALUE = 1
+    MARKED_MASK_VALUE = 2
 
     def __init__(self, size: Union[int, Tuple[int, int]]) -> None:
         assert (isinstance(size, int) and size > 0) or (isinstance(size, tuple) and len(
@@ -68,6 +75,9 @@ class Board(object):
 
     def is_bomb(self, r: int, c: int) -> bool:
         return self.__board[r, c] == Board.BOMB_VALUE
+    
+    def is_revealed(self, r: int, c: int) -> bool:
+        return self.__mask[r, c] == Board.REVEALED_MASK_VALUE
 
     def __generate_bomb(self) -> Tuple[int, int]:
         number_of_bombs = int(self.__size[0]*self.__size[1]*0.1)
@@ -97,6 +107,9 @@ class Board(object):
             elif action == "unmark":
                 self.mark(*state)
         return self
+    
+
+    
 
     def reveal(self, row: int, col: int) -> None:
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
@@ -126,3 +139,25 @@ class Board(object):
         plt.imshow(self.__mask, cmap='hot', interpolation='nearest')
         plt.show()
         return self
+
+    def kernel_n(self, size , cell):
+        # give a piece of the board where cell(x,y) is the center and size of the piece is size*size
+        x, y = cell
+        
+        radius = size//2
+        board_piece = np.zeros((size, size), dtype=int)
+        row = 0   
+        for i in range( x-radius, x+radius+1):
+            col = 0
+            for j in range( y-radius,  y+radius+1):
+                if i < 0 or i >= self.__size[0] or j < 0 or j >= self.__size[1]:
+                    board_piece[row][col] = Board.HIDDEN_VALUE
+                elif self.__mask[i, j] == Board.HIDDEN_MASK_VALUE :
+                    board_piece[row][col] = Board.HIDDEN_VALUE
+                elif self.__mask[i, j] == Board.REVEALED_MASK_VALUE:
+                    board_piece[row][col] = self.__board[i,j]
+                elif self.__mask[i, j] == Board.MARKED_MASK_VALUE:
+                    board_piece[row][col] = Board.BOMB_VALUE
+                col += 1
+            row += 1
+        return board_piece
