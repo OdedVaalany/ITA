@@ -89,16 +89,19 @@ class Board(object):
     def is_marked(self, r: int, c: int) -> bool:
         return self.__mask[r, c] == Board.MARKED_MASK_VALUE
 
-    def __generate_bomb(self) -> Tuple[int, int]:
+    def __generate_bomb(self):
         self.__number_of_bombs = math.floor(int(self.__size[0]*self.__size[1]*self.__bomb_density))
-        while(True):
-            x = random.choices(np.arange(self.__size[1]), k=self.__number_of_bombs)
-            y = random.choices(np.arange(self.__size[0]), k=self.__number_of_bombs)
-            self.__bombs = set([(r, c) for r, c in zip(y, x)])
-            if(len(self.__bombs) == self.__number_of_bombs):
-                self.__board[y, x] = Board.BOMB_VALUE
-                break
-                
+        # Generate all possible cell positions as a list of tuples
+        all_positions = [(r, c) for r in range(self.__size[0]) for c in range(self.__size[1])]
+        
+        # Randomly sample the required number of unique positions
+        self.__bombs = set(random.sample(all_positions, self.__number_of_bombs))
+        
+        # Place the bombs on the board
+        for r, c in self.__bombs:
+            self.__board[r, c] = Board.BOMB_VALUE
+
+        
 
     def __set_numbers(self) -> None:
         x, y, v = [], [], []
