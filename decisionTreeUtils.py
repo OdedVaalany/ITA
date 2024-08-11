@@ -164,8 +164,9 @@ def run_parallel_episodes(num_episodes, Boards, file_name):
         futures = []
         for i in range(num_episodes):
             if i % 1000 == 0:
-                print("crated" , i)
-                
+                print("crated" ,)
+                print(f"Processed {i + 1}/{num_episodes} episodes")
+                print(f"Data size: {len(X)} samples")
             futures.append(executor.submit(run_episode, i, Boards) )
         
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
