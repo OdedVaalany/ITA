@@ -91,16 +91,14 @@ class Board(object):
 
     def __generate_bomb(self) -> Tuple[int, int]:
         self.__number_of_bombs = math.floor(int(self.__size[0]*self.__size[1]*self.__bomb_density))
-        print(self.__number_of_bombs , "number of bombs")
-
-        x = random.choices(np.arange(self.__size[1]), k=self.__number_of_bombs)
-        y = random.choices(np.arange(self.__size[0]), k=self.__number_of_bombs)
-        
-        self.__bombs = set([(r, c) for r, c in zip(y, x)])
-        if(len(self.__bombs) != self.__number_of_bombs):
-            self.__generate_bomb()
-            return
-        self.__board[y, x] = Board.BOMB_VALUE
+        while(True):
+            x = random.choices(np.arange(self.__size[1]), k=self.__number_of_bombs)
+            y = random.choices(np.arange(self.__size[0]), k=self.__number_of_bombs)
+            self.__bombs = set([(r, c) for r, c in zip(y, x)])
+            if(len(self.__bombs) == self.__number_of_bombs):
+                self.__board[y, x] = Board.BOMB_VALUE
+                break
+                
 
     def __set_numbers(self) -> None:
         x, y, v = [], [], []
@@ -187,18 +185,22 @@ class Board(object):
     def lose(self):
         for bomb in self.__bombs:
             if self.__mask[bomb] == Board.REVEALED_MASK_VALUE:
-                # print("You Lost!")
                 return True
         return False
 
     def win(self):
         
-        print(self.__num_of_markers)
-        print(self.__number_of_bombs)
         if self.__num_of_markers == self.__number_of_bombs:
-            print("You Won!")
             return True
+        
         return False
+
+    def open_first(self):
+        for row in range(self.__size[0]):
+            for col in range(self.__size[1]):
+                if(self.__board[row,col] == 0):
+                    self.apply_action((row,col) , "reveal")
+                    return
 
     def print_current_board(self):
     
