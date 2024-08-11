@@ -4,13 +4,14 @@ import random
 import matplotlib.pyplot as plt
 from typing import *
 import copy
+import math
 
 class Board(object):
     
     PRECENTAGE_OF_BOMBS = 0.1
 
     BOMB_VALUE = 10
-    MARK_VALUE = 20
+    MARK_VALUE = -20
     HIDDEN_VALUE = -1
 
     HIDDEN_MASK_VALUE = 0
@@ -89,10 +90,16 @@ class Board(object):
         return self.__mask[r, c] == Board.MARKED_MASK_VALUE
 
     def __generate_bomb(self) -> Tuple[int, int]:
-        self.__number_of_bombs = int(self.__size[0]*self.__size[1]*self.__bomb_density)
+        self.__number_of_bombs = math.floor(int(self.__size[0]*self.__size[1]*self.__bomb_density))
+        print(self.__number_of_bombs , "number of bombs")
+
         x = random.choices(np.arange(self.__size[1]), k=self.__number_of_bombs)
         y = random.choices(np.arange(self.__size[0]), k=self.__number_of_bombs)
+        
         self.__bombs = set([(r, c) for r, c in zip(y, x)])
+        if(len(self.__bombs) != self.__number_of_bombs):
+            self.__generate_bomb()
+            return
         self.__board[y, x] = Board.BOMB_VALUE
 
     def __set_numbers(self) -> None:
@@ -140,8 +147,12 @@ class Board(object):
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
         if self.__mask[row, col] == 1:
             return
-        self.__mask[row, col] = 2 - self.__mask[row, col]
-        self.__num_of_markers += 1 if self.__mask[row, col] == 2 else -1
+        if self.__mask[row,col] == 2:
+            self.__mask[row, col] = 0
+            self.__num_of_markers -=1
+        else:
+            self.__mask[row, col] = 2 
+            self.__num_of_markers += 1 
         return self
 
     def plot(self) -> None:
@@ -168,7 +179,7 @@ class Board(object):
                 elif self.__mask[i, j] == Board.REVEALED_MASK_VALUE:
                     board_piece[row][col] = self.__board[i,j]
                 elif self.__mask[i, j] == Board.MARKED_MASK_VALUE:
-                    board_piece[row][col] = Board.MARKED_MASK_VALUE
+                    board_piece[row][col] = Board.MARK_VALUE
                 col += 1
             row += 1
         return board_piece
@@ -182,9 +193,10 @@ class Board(object):
 
     def win(self):
         
-        number_of_hidden = int(self.__size[0]*self.__size[1] - self.__num_of_opens)
+        print(self.__num_of_markers)
+        print(self.__number_of_bombs)
         if self.__num_of_markers == self.__number_of_bombs:
-            # print("You Won!")
+            print("You Won!")
             return True
         return False
 
