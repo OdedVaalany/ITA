@@ -7,6 +7,7 @@ import copy
 
 class Board(object):
     
+    PRECENTAGE_OF_BOMBS = 0.1
 
     BOMB_VALUE = 10
     MARK_VALUE = 20
@@ -16,11 +17,15 @@ class Board(object):
     REVEALED_MASK_VALUE = 1
     MARKED_MASK_VALUE = 2
 
-    def __init__(self, size: Union[int, Tuple[int, int]]) -> None:
+    def __init__(self, size: Union[int, Tuple[int, int]] , bomb_density = PRECENTAGE_OF_BOMBS) -> None:
         assert (isinstance(size, int) and size > 0) or (isinstance(size, tuple) and len(
             size) == 2 and size[0] > 0 and size[1] > 0), "Invalid size"
+        self.__bomb_density = bomb_density
         self.__size = size if isinstance(size, tuple) else (size, size)
+        self.__number_of_bombs = 0
         self.reset()
+        
+
 
     def reset(self) -> None:
         """
@@ -28,6 +33,7 @@ class Board(object):
         """
         self.__board = np.zeros(self.__size, dtype=int)
         self.__mask = np.zeros(self.__size, dtype=int)
+        self.__number_of_bombs = 0
         self.__num_of_markers = 0
         self.__num_of_opens = 0
         self.__generate_bomb()
@@ -79,10 +85,13 @@ class Board(object):
     def is_revealed(self, r: int, c: int) -> bool:
         return self.__mask[r, c] == Board.REVEALED_MASK_VALUE
 
+    def is_marked(self, r: int, c: int) -> bool:
+        return self.__mask[r, c] == Board.MARKED_MASK_VALUE
+
     def __generate_bomb(self) -> Tuple[int, int]:
-        number_of_bombs = int(self.__size[0]*self.__size[1]*0.1)
-        x = random.choices(np.arange(self.__size[1]), k=number_of_bombs)
-        y = random.choices(np.arange(self.__size[0]), k=number_of_bombs)
+        self.__number_of_bombs = int(self.__size[0]*self.__size[1]*self.__bomb_density)
+        x = random.choices(np.arange(self.__size[1]), k=self.__number_of_bombs)
+        y = random.choices(np.arange(self.__size[0]), k=self.__number_of_bombs)
         self.__bombs = set([(r, c) for r, c in zip(y, x)])
         self.__board[y, x] = Board.BOMB_VALUE
 
@@ -97,6 +106,8 @@ class Board(object):
                 v.append(np.count_nonzero(self.__board[max(
                     0, i-1):min(self.__size[0], i+2), max(0, j-1):min(self.__size[1], j+2)]))
         self.__board[x, y] = v
+
+
 
     def apply_action(self, state: Tuple[int, int], action: str) -> None:
         if action in self.get_actions(state):
@@ -157,7 +168,32 @@ class Board(object):
                 elif self.__mask[i, j] == Board.REVEALED_MASK_VALUE:
                     board_piece[row][col] = self.__board[i,j]
                 elif self.__mask[i, j] == Board.MARKED_MASK_VALUE:
-                    board_piece[row][col] = Board.BOMB_VALUE
+                    board_piece[row][col] = Board.MARKED_MASK_VALUE
                 col += 1
             row += 1
         return board_piece
+    
+    def lose(self):
+        for bomb in self.__bombs:
+            if self.__mask[bomb] == Board.REVEALED_MASK_VALUE:
+                # print("You Lost!")
+                return True
+        return False
+
+    def win(self):
+        
+        number_of_hidden = int(self.__size[0]*self.__size[1] - self.__num_of_opens)
+        if self.__num_of_markers == self.__number_of_bombs:
+            # print("You Won!")
+            return True
+        return False
+
+    def print_current_board(self):
+    
+        tmp = self.__board.copy()
+        tmp[self.__mask == 0] = -1
+        tmp[self.__mask == 2] = -2
+        print(tmp)
+        return self
+        
+       
