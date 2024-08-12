@@ -54,14 +54,14 @@ if __name__ == "__main__":
 
     difficulty = "Beginer"
     board = Boards[difficulty]
-    epoches = 1000000
+    epoches = 30000
     dt = Decision_Tree(board)
     # dt = RandomForestAgent(board , 25 , 25)
     X = []
     y = []
     number_of_games = 1000
-    file_name = f"{difficulty}.{epoches}.pkl"
-    data_size , tags_size = create_data_set(board , epoches , file_name)
+    file_name = f"data.{epoches}.pkl"
+    # data_size , tags_size = create_data_set(Boards , epoches , file_name)
     
     with open(file_name, 'rb') as f:
         X, y = pickle.load(f)
