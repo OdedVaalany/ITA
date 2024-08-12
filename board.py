@@ -3,17 +3,30 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from typing import *
-
+import copy
+import math
 
 class Board(object):
+    
+    PRECENTAGE_OF_BOMBS = 0.1
 
     BOMB_VALUE = 10
+    MARK_VALUE = -20
+    HIDDEN_VALUE = -1
 
-    def __init__(self, size: Union[int, Tuple[int, int]]) -> None:
+    HIDDEN_MASK_VALUE = 0
+    REVEALED_MASK_VALUE = 1
+    MARKED_MASK_VALUE = 2
+
+    def __init__(self, size: Union[int, Tuple[int, int]] , bomb_density = PRECENTAGE_OF_BOMBS) -> None:
         assert (isinstance(size, int) and size > 0) or (isinstance(size, tuple) and len(
             size) == 2 and size[0] > 0 and size[1] > 0), "Invalid size"
+        self.__bomb_density = bomb_density
         self.__size = size if isinstance(size, tuple) else (size, size)
+        self.__number_of_bombs = 0
         self.reset()
+        
+
 
     def reset(self) -> None:
         """
@@ -21,6 +34,7 @@ class Board(object):
         """
         self.__board = np.zeros(self.__size, dtype=int)
         self.__mask = np.zeros(self.__size, dtype=int)
+        self.__number_of_bombs = 0
         self.__num_of_markers = 0
         self.__num_of_opens = 0
         self.__generate_bomb()
@@ -68,13 +82,26 @@ class Board(object):
 
     def is_bomb(self, r: int, c: int) -> bool:
         return self.__board[r, c] == Board.BOMB_VALUE
+    
+    def is_revealed(self, r: int, c: int) -> bool:
+        return self.__mask[r, c] == Board.REVEALED_MASK_VALUE
 
-    def __generate_bomb(self) -> Tuple[int, int]:
-        number_of_bombs = int(self.__size[0]*self.__size[1]*0.1)
-        x = random.choices(np.arange(self.__size[1]), k=number_of_bombs)
-        y = random.choices(np.arange(self.__size[0]), k=number_of_bombs)
-        self.__bombs = set([(r, c) for r, c in zip(y, x)])
-        self.__board[y, x] = Board.BOMB_VALUE
+    def is_marked(self, r: int, c: int) -> bool:
+        return self.__mask[r, c] == Board.MARKED_MASK_VALUE
+
+    def __generate_bomb(self):
+        self.__number_of_bombs = math.floor(int(self.__size[0]*self.__size[1]*self.__bomb_density))
+        # Generate all possible cell positions as a list of tuples
+        all_positions = [(r, c) for r in range(self.__size[0]) for c in range(self.__size[1])]
+        
+        # Randomly sample the required number of unique positions
+        self.__bombs = set(random.sample(all_positions, self.__number_of_bombs))
+        
+        # Place the bombs on the board
+        for r, c in self.__bombs:
+            self.__board[r, c] = Board.BOMB_VALUE
+
+        
 
     def __set_numbers(self) -> None:
         x, y, v = [], [], []
@@ -88,6 +115,8 @@ class Board(object):
                     0, i-1):min(self.__size[0], i+2), max(0, j-1):min(self.__size[1], j+2)]))
         self.__board[x, y] = v
 
+
+
     def apply_action(self, state: Tuple[int, int], action: str) -> None:
         if action in self.get_actions(state):
             if action == "reveal":
@@ -97,6 +126,9 @@ class Board(object):
             elif action == "unmark":
                 self.mark(*state)
         return self
+    
+
+    
 
     def reveal(self, row: int, col: int) -> None:
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
@@ -116,8 +148,12 @@ class Board(object):
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
         if self.__mask[row, col] == 1:
             return
-        self.__mask[row, col] = 2 - self.__mask[row, col]
-        self.__num_of_markers += 1 if self.__mask[row, col] == 2 else -1
+        if self.__mask[row,col] == 2:
+            self.__mask[row, col] = 0
+            self.__num_of_markers -=1
+        else:
+            self.__mask[row, col] = 2 
+            self.__num_of_markers += 1 
         return self
 
     def plot(self) -> None:
@@ -126,3 +162,55 @@ class Board(object):
         plt.imshow(self.__mask, cmap='hot', interpolation='nearest')
         plt.show()
         return self
+
+    def kernel_n(self, size , cell):
+        # give a piece of the board where cell(x,y) is the center and size of the piece is size*size
+        x, y = cell
+        
+        radius = size//2
+        board_piece = np.zeros((size, size), dtype=int)
+        row = 0   
+        for i in range( x-radius, x+radius+1):
+            col = 0
+            for j in range( y-radius,  y+radius+1):
+                if i < 0 or i >= self.__size[0] or j < 0 or j >= self.__size[1]:
+                    board_piece[row][col] = Board.HIDDEN_VALUE
+                elif self.__mask[i, j] == Board.HIDDEN_MASK_VALUE :
+                    board_piece[row][col] = Board.HIDDEN_VALUE
+                elif self.__mask[i, j] == Board.REVEALED_MASK_VALUE:
+                    board_piece[row][col] = self.__board[i,j]
+                elif self.__mask[i, j] == Board.MARKED_MASK_VALUE:
+                    board_piece[row][col] = Board.MARK_VALUE
+                col += 1
+            row += 1
+        return board_piece
+    
+    def lose(self):
+        for bomb in self.__bombs:
+            if self.__mask[bomb] == Board.REVEALED_MASK_VALUE:
+                return True
+        return False
+
+    def win(self):
+        
+        if self.__num_of_markers == self.__number_of_bombs:
+            return True
+        
+        return False
+
+    def open_first(self):
+        for row in range(self.__size[0]):
+            for col in range(self.__size[1]):
+                if(self.__board[row,col] == 0):
+                    self.apply_action((row,col) , "reveal")
+                    return
+
+    def print_current_board(self):
+    
+        tmp = self.__board.copy()
+        tmp[self.__mask == 0] = -1
+        tmp[self.__mask == 2] = -2
+        print(tmp)
+        return self
+        
+       
