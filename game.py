@@ -109,5 +109,16 @@ if __name__ == "__main__":
     # ui = UI(board)
     # ui.run()
     states = greedy_search(MinesweeperSearchProblem(board), huristic)
-    ui = ShowSearch(states, 500)
-    ui.run()
+    # ui = ShowSearch(states, 500)
+    # ui.run()
+    success = 0
+    loss = 0
+    for i in range(20):
+        board = Board((15, 15))
+        states = greedy_search(MinesweeperSearchProblem(board), huristic)
+        if states[-1].is_solved():
+            success += 1
+        if states[-1].is_failed():
+            loss += 1
+
+    print(success, loss, success/100)

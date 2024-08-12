@@ -101,7 +101,7 @@ def a_star_search(problem, heuristic=lambda x, y: 0):
 def greedy_search(problem, heuristic=lambda x, y: 0):
     states = []
     state = problem.get_start_state()
-    for i in range(100):
+    for i in range(state.size[0]*state.size[1]):
         states.append(state)
         successor = min(problem.get_successors(state),
                         key=lambda x: x[2])[0]
