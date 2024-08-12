@@ -3,6 +3,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 from typing import *
+from utils import EMPTY, FLAG
 
 
 class Board(object):
@@ -126,3 +127,86 @@ class Board(object):
         plt.imshow(self.__mask, cmap='hot', interpolation='nearest')
         plt.show()
         return self
+
+    def copy(self) -> 'Board':
+        new_board = Board(self.__size)
+        new_board.__board = self.__board.copy()
+        new_board.__mask = self.__mask.copy()
+        new_board.__num_of_markers = self.__num_of_markers
+        new_board.__num_of_opens = self.__num_of_opens
+        new_board.__bombs = self.__bombs.copy()
+        return new_board
+
+    # Relared to search_problem.py
+    def is_solved(self) -> bool:
+        """
+        This function checks if the board is solved
+        """
+        return self.__num_of_opens == self.__size[0]*self.__size[1] - len(self.__bombs)
+
+    def is_failed(self) -> bool:
+        """
+        This function checks if the board is failed (i.e. a bomb is revealed)
+        """
+        return any([self.__mask[b[0], b[1]] == 1 for b in self.__bombs])
+
+    def apply_action(self, action: Tuple[int, int, Literal["reveal", "mark"]]) -> 'Board':
+        """
+        This function applies an action to the board
+        """
+        new_board = self.copy()
+        if action[2] == "reveal":
+            new_board.reveal(action[0], action[1])
+        elif action[2] == "mark":
+            new_board.mark(action[0], action[1])
+        return new_board
+
+    def get_square(self, cell: Tuple[int, int]) -> np.ndarray:
+        """
+        This function returns the square around a cell
+        """
+        if cell[0] > 1 and cell[0] + 2 < self.__size[0] and cell[1] > 1 and cell[1]+2 < self.__size[1]:
+            return self[cell[0]-2:cell[0]+3, cell[1]-2:cell[1]+3]
+        tmp = np.full((self.size[0]+4, self.size[1]+4), -10)
+        tmp[2:-2, 2:-2] = self[:, :]
+        return tmp[cell[0]:cell[0]+5, cell[1]:cell[1]+5]
+
+    def what_action_for_this_cell(self, cell: Tuple[int, int]) -> Literal["reveal", "mark", "noop"]:
+        """
+        This function returns the best action for a cell
+        """
+        sq = self.relax_square(self.get_square(cell))
+        for i in range(1, 4):
+            for j in range(1, 4):
+                if i == 2 and j == 2:
+                    continue
+                if sq[i, j] == 1:
+                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != EMPTY) == 8:
+                        return 'mark'  # The cell is good for flagging
+                if sq[i, j] == 0:
+                    return 'reveal'  # The cell is good for revealing
+        return 'noop'
+
+    def relax_square(self, square: np.ndarray) -> np.ndarray:
+        """
+        This function relaxes the square
+        """
+        for i in range(1, 4):
+            for j in range(1, 4):
+                if square[i, j] > 0:
+                    square[i,
+                           j] -= np.count_nonzero(square[i-1:i+2, j-1:j+2] == FLAG)
+        return square
+
+    def get_actions(self) -> List[Tuple[int, int, Literal["reveal", "mark", "noop"]]]:
+        """
+        This function returns the list of actions that can be taken
+        """
+        actions = []
+        for cell in self.avilable_states:
+            act = self.what_action_for_this_cell(cell)
+            if act != 'noop':
+                actions.append((*cell, self.what_action_for_this_cell(cell)))
+        if len(actions) == 0:
+            return [(0, 0, 'reveal'), (0, self.size[1]-1, 'reveal'), (self.size[0]-1, 0, 'reveal'), (self.size[0]-1, self.size[1]-1, 'reveal')]
+        return actions

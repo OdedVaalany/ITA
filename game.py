@@ -4,8 +4,10 @@ from board import Board
 from utils import *
 from time import time
 import numpy as np
-from KRagent import KR_agent
+from search import a_star_search, greedy_search
+from search_problem import MinesweeperSearchProblem, huristic
 from random import choice
+from typing import List
 
 
 def format_time(number: float) -> str:
@@ -74,18 +76,38 @@ class UI:
             self.clock.tick(60)
 
 
+class ShowSearch(UI):
+    def __init__(self, states: List[Board], epoch: int = 10) -> None:
+        super().__init__(states[0])
+        self.states = states
+        self.state_index = 0
+        self.epoch = epoch
+
+    def run(self):
+        while self.running:
+            # poll for events
+            # pygame.QUIT event means the user clicked X to close your window
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.handle_click(event)
+            # fill the screen with a color to wipe away anything from last frame
+            self.screen.fill("white")
+            self.draw_blocks()
+            self.draw_text()
+            pygame.display.flip()
+            if self.state_index < len(self.states):
+                self.board = self.states[self.state_index]
+                self.state_index += 1
+            self.clock.tick(1000/self.epoch)
+
+
 if __name__ == "__main__":
     # pygame setup
     board = Board((15, 15))
-    ui = UI(board)
+    # ui = UI(board)
+    # ui.run()
+    states = greedy_search(MinesweeperSearchProblem(board), huristic)
+    ui = ShowSearch(states, 500)
     ui.run()
-    agent = KR_agent()
-    # b = [
-    #     [0, 0, 0, 0, 0],
-    #     [0, 1, 1, 1, 0],
-    #     [0, 1, EMPTY, 1, 0],
-    #     [0, 1, 1, 1, 0],
-    #     [0, 0, 0, 0, 0],
-    # ]
-    # [print(k) for k in agent.procees(b)]
-    # print(agent.infer("22N0"))
