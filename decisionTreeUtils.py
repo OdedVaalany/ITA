@@ -32,10 +32,10 @@ def make_one_move(board, agent):
                     else:
                         done = False
                         return done
-                # elif prediction == 0:
-                #     board.apply_action(cell, "mark")
-                #     done = False
-                #     return done
+                elif prediction == 0:
+                    board.apply_action(cell, "mark")
+                    done = False
+                    return done
     
     random_cell = random_choice(board)
     print("random" ,random_cell)
@@ -88,10 +88,10 @@ def random_correct(board):
         cell = (random.randint(0, board.size[0]-1), random.randint(0, board.size[1]-1))
         if board.is_revealed(cell[0],cell[1]) or board.is_marked(cell[0],cell[1]):
             continue
-        if not board.is_bomb(cell[0],cell[1]):
-        #     board.apply_action((cell[0],cell[1]), "mark")
-        #     return cell, 0
-        # else:
+        if board.is_bomb(cell[0],cell[1]):
+            board.apply_action((cell[0],cell[1]), "mark")
+            return cell, 0
+        else:
             board.apply_action((cell[0],cell[1]), "reveal")
             return cell, 1
 
@@ -211,25 +211,49 @@ def process_data(X, y):
     df = pd.DataFrame(X)
     df['tag'] = y
 
-    # Find duplicates with different tags
-    tag_counts = df.groupby(df.columns.tolist()).size()
-    conflicting_tags = tag_counts[tag_counts > 1].index
-    
-    # Create a mask for rows with conflicting tags
-    conflict_mask = df.duplicated(keep=False) & df.groupby(list(df.columns[:-1]))['tag'].transform('nunique') > 1
-    
-    # Update tags for conflicting samples to 0
-    df.loc[conflict_mask, 'tag'] = 0
+    # Group by all feature columns and count the number of unique tags for each group
+    unique_tag_count = df.groupby(list(df.columns[:-1]))['tag'].transform('nunique')
 
-    # Remove duplicates with the same tag
-    # Drop duplicates, keeping only the first occurrence
-    df = df.drop_duplicates(subset=df.columns.tolist(), keep='first')
+    # Create a mask where the number of unique tags is greater than 1 (indicating conflicting tags)
+    conflict_mask = unique_tag_count > 1
+    
+    # Update tags for conflicting samples to 2
+    df.loc[conflict_mask, 'tag'] = 2
+
+    # Remove duplicates with the same tag (keeping only the first occurrence)
+    df = df.drop_duplicates(subset=list(df.columns[:-1]), keep='first')
 
     # Extract the updated X and y
     X_updated = df.drop('tag', axis=1).values
     y_updated = df['tag'].values
 
     return X_updated, y_updated
+
+# def process_data(X, y):
+#     import pandas as pd
+#     # Convert X and y into a pandas DataFrame
+#     df = pd.DataFrame(X)
+#     df['tag'] = y
+
+#     # Find duplicates with different tags
+#     tag_counts = df.groupby(df.columns.tolist()).size()
+#     conflicting_tags = tag_counts[tag_counts > 1].index
+    
+#     # Create a mask for rows with conflicting tags
+#     conflict_mask = df.duplicated(keep=False) & df.groupby(list(df.columns[:-1]))['tag'].transform('nunique') > 1
+    
+#     # Update tags for conflicting samples to 0
+#     df.loc[conflict_mask, 'tag'] = 2
+
+#     # Remove duplicates with the same tag
+#     # Drop duplicates, keeping only the first occurrence
+#     df = df.drop_duplicates(subset=df.columns.tolist(), keep='first')
+
+#     # Extract the updated X and y
+#     X_updated = df.drop('tag', axis=1).values
+#     y_updated = df['tag'].values
+
+#     return X_updated, y_updated
 
 
 def create_data_set(boards , num_episodes,file_name):

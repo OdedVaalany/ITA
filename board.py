@@ -187,7 +187,7 @@ class Board(object):
                 elif self.__mask[i, j] == Board.REVEALED_MASK_VALUE:
                     board_piece[row][col] = self.__board[i,j]
                 elif self.__mask[i, j] == Board.MARKED_MASK_VALUE:
-                    board_piece[row][col] = Board.HIDDEN_MASK_VALUE
+                    board_piece[row][col] = Board.MARK_VALUE
                 col += 1
             row += 1
         return board_piece

@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     difficulty = "Beginer"
     board = Boards[difficulty]
-    epoches = 20000
+    epoches = 80000
     cleanData = True
    
     dt = Decision_Tree(board,max_depth=25)
@@ -64,13 +64,15 @@ if __name__ == "__main__":
     X = []
     y = []
     number_of_games = 1000
-    file_name = f"data.{cleanData}.{epoches}.pkl"
-    # data_size , tags_size = create_data_set(Boards , epoches , file_name)
+    file_name = f"data.extra.{cleanData}.{epoches}.pkl"
+    data_size , tags_size = create_data_set(Boards , epoches , file_name)
     
     with open(file_name, 'rb') as f:
         X, y = pickle.load(f)
     winCounter = 0
-    print(len(X) ,len(y))
+    for i in y:
+        if i == 2:
+            print("unkowns")
     
     dt.train(X,y)
     
