@@ -98,15 +98,32 @@ def a_star_search(problem, heuristic=lambda x, y: 0):
     return []
 
 
-def greedy_search(problem, heuristic=lambda x, y: 0):
+def greedy_search(problem):
     states = []
     state = problem.get_start_state()
     for i in range(state.size[0]*state.size[1]):
         states.append(state)
-        successor = min(problem.get_successors(state),
-                        key=lambda x: x[2])[0]
-        if problem.is_goal_state(successor):
-            states.append(state)
+        if problem.is_goal_state(state):
             break
+        next_actions = problem.get_successors(state)
+        if len(next_actions) == 0:
+            break
+        successor = min(next_actions,
+                        key=lambda x: x[2])[0]
         state = successor
     return states
+
+
+def random_min(seq, key=lambda x: x):
+    min_val = float('inf')
+    min_elem = None
+    for elem in seq:
+        val = key(elem)
+        if val < min_val:
+            min_val = val
+            min_elem = elem
+        elif val == min_val:
+            if util.flip_coin(0.5):
+                min_val = val
+                min_elem = elem
+    return min_elem

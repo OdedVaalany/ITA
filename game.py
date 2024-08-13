@@ -80,12 +80,11 @@ class ShowSearch(UI):
     def __init__(self, states: List[Board], epoch: int = 10) -> None:
         super().__init__(states[0])
         self.states = states
-        self.state_index = 0
+        self.state_index = 1
         self.epoch = epoch
 
     def run(self):
         while self.running:
-            # poll for events
             # pygame.QUIT event means the user clicked X to close your window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -105,20 +104,20 @@ class ShowSearch(UI):
 
 if __name__ == "__main__":
     # pygame setup
-    board = Board((15, 15))
+    # board = Board((15, 15))
     # ui = UI(board)
     # ui.run()
-    states = greedy_search(MinesweeperSearchProblem(board), huristic)
-    # ui = ShowSearch(states, 500)
-    # ui.run()
+    # states = greedy_search(MinesweeperSearchProblem(board))
     success = 0
     loss = 0
-    for i in range(20):
-        board = Board((15, 15))
-        states = greedy_search(MinesweeperSearchProblem(board), huristic)
+    for i in range(100):
+        board = Board((16, 16), 20)
+        states = greedy_search(MinesweeperSearchProblem(board))
+        # ShowSearch(states, 60).run()
         if states[-1].is_solved():
             success += 1
-        if states[-1].is_failed():
+        elif states[-1].is_failed():
             loss += 1
-
-    print(success, loss, success/100)
+            # if len(states) > 2:
+            #     ShowSearch(states, 60).run()
+    print(success, loss)

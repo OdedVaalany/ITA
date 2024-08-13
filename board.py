@@ -62,7 +62,7 @@ class Board(object):
 
     @property
     def num_of_opens(self) -> int:
-        return self.__num_of_opens
+        return np.count_nonzero(self.__mask == 1)
 
     @property
     def bombs(self) -> Set[Tuple[int, int]]:
@@ -91,8 +91,11 @@ class Board(object):
         return self.__mask[r, c] == Board.MARKED_MASK_VALUE
 
     def __generate_bomb(self):
-        self.__number_of_bombs = math.floor(
-            int(self.__size[0]*self.__size[1]*self.__bomb_density))
+        if self.__bomb_density > 1:
+            self.__number_of_bombs = self.__bomb_density
+        else:
+            self.__number_of_bombs = math.floor(
+                int(self.__size[0]*self.__size[1]*self.__bomb_density))
         # Generate all possible cell positions as a list of tuples
         all_positions = [(r, c) for r in range(self.__size[0])
                          for c in range(self.__size[1])]
@@ -174,7 +177,7 @@ class Board(object):
         """
         This function checks if the board is solved
         """
-        return self.__num_of_opens == self.__size[0]*self.__size[1] - len(self.__bombs)
+        return self.num_of_opens == self.__size[0]*self.__size[1] - len(self.__bombs)
 
     def is_failed(self) -> bool:
         """
@@ -215,6 +218,9 @@ class Board(object):
                 if sq[i, j] == 1:
                     if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != EMPTY) == 8:
                         return 'mark'  # The cell is good for flagging
+                if sq[i, j] == 2:
+                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != EMPTY) == 7:
+                        return 'mark'  # The cell is good for flagging
                 if sq[i, j] == 0:
                     return 'reveal'  # The cell is good for revealing
         return 'noop'
@@ -238,7 +244,19 @@ class Board(object):
         for cell in self.avilable_states:
             act = self.what_action_for_this_cell(cell)
             if act != 'noop':
-                actions.append((*cell, self.what_action_for_this_cell(cell)))
+                actions.append((*cell, act))
         if len(actions) == 0:
-            return [(0, 0, 'reveal'), (0, self.size[1]-1, 'reveal'), (self.size[0]-1, 0, 'reveal'), (self.size[0]-1, self.size[1]-1, 'reveal')]
+            if self.num_of_opens < 4:
+                if self.__mask[0, 0] == 0:
+                    actions += [(0, 0, 'reveal')]
+                if self.__mask[0, self.size[1]-1] == 0:
+                    actions += [(0, self.size[1]-1, 'reveal')]
+                if self.__mask[self.size[0]-1, 0] == 0:
+                    actions += [(self.size[0]-1, 0, 'reveal')]
+                if self.__mask[self.size[0]-1, self.size[1]-1] == 0:
+                    actions += [(self.size[0]-1, self.size[1]-1, 'reveal')]
+            else:
+                random_cell = random.choice(self.avilable_states)
+                actions += [(random_cell[0], random_cell[1], 'reveal')]
+
         return actions
