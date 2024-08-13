@@ -13,6 +13,7 @@ class Board(object):
     BOMB_VALUE = 10
     MARK_VALUE = -20
     HIDDEN_VALUE = -1
+    OUT_OF_BOUND_VALUE = -100
 
     HIDDEN_MASK_VALUE = 0
     REVEALED_MASK_VALUE = 1
@@ -56,6 +57,10 @@ class Board(object):
         return self.__size
 
     @property
+    def bomb_density(self) -> float:
+        return self.__bomb_density
+
+    @property
     def num_of_markers(self) -> int:
         return self.__num_of_markers
 
@@ -97,6 +102,8 @@ class Board(object):
         # Randomly sample the required number of unique positions
         self.__bombs = set(random.sample(all_positions, self.__number_of_bombs))
         
+        if(self.__number_of_bombs != len(self.__bombs)):
+            print("Error in generating the bombs")
         # Place the bombs on the board
         for r, c in self.__bombs:
             self.__board[r, c] = Board.BOMB_VALUE
@@ -174,13 +181,13 @@ class Board(object):
             col = 0
             for j in range( y-radius,  y+radius+1):
                 if i < 0 or i >= self.__size[0] or j < 0 or j >= self.__size[1]:
-                    board_piece[row][col] = Board.HIDDEN_VALUE
+                    board_piece[row][col] = Board.OUT_OF_BOUND_VALUE
                 elif self.__mask[i, j] == Board.HIDDEN_MASK_VALUE :
                     board_piece[row][col] = Board.HIDDEN_VALUE
                 elif self.__mask[i, j] == Board.REVEALED_MASK_VALUE:
                     board_piece[row][col] = self.__board[i,j]
                 elif self.__mask[i, j] == Board.MARKED_MASK_VALUE:
-                    board_piece[row][col] = Board.MARK_VALUE
+                    board_piece[row][col] = Board.HIDDEN_MASK_VALUE
                 col += 1
             row += 1
         return board_piece
@@ -193,7 +200,8 @@ class Board(object):
 
     def win(self):
         
-        if self.__num_of_markers == self.__number_of_bombs:
+        close_cells = self.avilable_states
+        if len(close_cells) + self.__num_of_markers == self.__number_of_bombs:
             return True
         
         return False
