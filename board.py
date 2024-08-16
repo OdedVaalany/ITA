@@ -164,6 +164,9 @@ class Board(object):
         return self
 
     def copy(self) -> 'Board':
+        """
+        This function returns a deep copy of the board
+        """
         new_board = Board(self.__size)
         new_board.__board = self.__board.copy()
         new_board.__mask = self.__mask.copy()
