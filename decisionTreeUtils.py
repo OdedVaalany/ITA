@@ -22,6 +22,7 @@ def make_one_move(board, agent):
                 continue
             state = board.kernel_n(5,cell)
             if filter_states(state):
+                state = feature_vector(state)
                 prediction = agent.decision(state)
                 if prediction == 1:
                     board.apply_action(cell, "reveal")
@@ -50,11 +51,12 @@ def agent_play(board , agent):
     move_counter = 0
     while not done:
         # board.print_current_board()
-        done = make_one_move(board, agent)
-        if(board.win()):
+        make_one_move(board, agent)
+        move_counter += 1
+        if(board.is_solved() or board.is_failed()):
+            done = True
+        if(board.is_solved()):
             return True
-    #     move_counter += 1
-    # board.print_current_board()
     print(f"Game Over! Total moves: {move_counter}")
     return False
 
@@ -77,7 +79,8 @@ def filter_states(state):
         return False
 
 
-
+def feature_vector(state):
+    return np.array(state).flatten()
         
 def random_correct(board):
     done = True
@@ -97,30 +100,31 @@ def random_correct(board):
 
 def make_action_for_Training(board ):
         tag = None
-        for row in range((board.size[0])):
-            for col in range((board.size[1])):
-                cell = (row, col)
-                if board.is_revealed(cell[0],cell[1]) or board.is_marked(cell[0],cell[1]):
-                    continue
-                state = board.kernel_n(5,cell)
-                if filter_states(state):
-                    actions = board.get_actions(cell)
-                    if("reveal" in actions):
-                        np_state = np.array(state).flatten()
-                        if board.is_bomb(cell[0],cell[1]):
-                            board.apply_action(cell, "mark")
-                            tag =  0
-                            add_to_data = True
-                            return np_state, tag , add_to_data 
-                        else:
-                            board.apply_action(cell, "reveal")
-                            tag = 1
-                            add_to_data = True
-                            return np_state, tag , add_to_data
+        available_states = board.available_states
+        random.shuffle(available_states)
+        for cell in available_states:
+            cell = (cell[0], cell[1])
+            if board.is_revealed(cell[0],cell[1]) or board.is_marked(cell[0],cell[1]):
+                continue
+            state = board.kernel_n(5,cell)
+            if filter_states(state):
+                actions = board.get_actions(cell)
+                if("reveal" in actions):
+                    np_state = feature_vector(state)
+                    if board.is_bomb(cell[0],cell[1]):
+                        board.apply_action(cell, "mark")
+                        tag =  0
+                        add_to_data = True
+                        return np_state, tag , add_to_data 
+                    else:
+                        board.apply_action(cell, "reveal")
+                        tag = 1
+                        add_to_data = True
+                        return np_state, tag , add_to_data
         
         #make random move that doesnt pick bomb if no state passed the filter
         
-        if board.win() or board.lose():
+        if board.is_solved() or board.is_failed():
             return None, None, False      
         cell,tag = random_correct(board)
         # print("random correct")
@@ -150,7 +154,7 @@ def run_episode(episode, Boards):
             X.append(np_state)
             y.append(tag)
         
-        if board.win() or board.lose():
+        if board.is_solved() or board.is_failed():
             done = True
     
     return X, y
@@ -186,30 +190,3 @@ def run_parallel_episodes(num_episodes, Boards, file_name):
 
 def create_data_set(boards , num_episodes,file_name):
     return run_parallel_episodes(num_episodes , boards , file_name)
-    # X = []
-    # y = []
-    # for episode in range(num_episodes):
-    #     #pick random board from all types
-    #     random_key = random.choice(list(Boards.keys()))
-    #     board = Boards[random_key]
-    #     board.reset()
-    #     board.open_first()
-    #     done = False
-    #     while not done:
-    #         np_state, tag , add_to_data = make_action_for_Training(board)
-    #         #add to the data only if the state is not in the map or the tag is differen
-    #         if add_to_data:
-    #             X.append(np_state)
-    #             y.append(tag)
-
-    #         if(board.win() or board.lose()):
-    #             done = True
-            
-    #     if episode % 100 == 0:
-    #         print(len(X))
-    #         print(len(y))
-    #         print(f"Episode {episode }") 
-
-    # with open(file_name, 'wb') as f:
-    #     pickle.dump((X, y), f)
-    # return len(X),len(y)

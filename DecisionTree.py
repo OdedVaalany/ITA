@@ -26,8 +26,7 @@ class Decision_Tree:
 
     
     def decision(self, state):
-        np_state = np.array(state).flatten()
-        return self.model.predict([np_state])
+        return self.model.predict([state])
 
 class RandomForestAgent:
     def __init__(self, board, n_estimators=25, max_depth=25):
@@ -39,7 +38,6 @@ class RandomForestAgent:
         self.model.fit(X, y)
 
     def decision(self, state):
-        np_state = np.array(state).flatten()
         return self.model.predict([np_state])
 
     
