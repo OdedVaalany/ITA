@@ -104,20 +104,20 @@ class ShowSearch(UI):
 
 if __name__ == "__main__":
     # pygame setup
-    # board = Board((15, 15))
-    # ui = UI(board)
-    # ui.run()
+    board = Board((15, 15))
+    ui = UI(board)
+    ui.run()
     # states = greedy_search(MinesweeperSearchProblem(board))
-    success = 0
-    loss = 0
-    for i in range(100):
-        board = Board((16, 16), 20)
-        states = greedy_search(MinesweeperSearchProblem(board))
-        # ShowSearch(states, 60).run()
-        if states[-1].is_solved():
-            success += 1
-        elif states[-1].is_failed():
-            loss += 1
-            # if len(states) > 2:
-            #     ShowSearch(states, 60).run()
-    print(success, loss)
+    # success = 0
+    # loss = 0
+    # for i in range(10):
+    #     board = Board((16, 16), 20)
+    #     states = greedy_search(MinesweeperSearchProblem(board))
+    #     ShowSearch(states, 60).run()
+    #     if states[-1].is_solved():
+    #         success += 1
+    #     elif states[-1].is_failed():
+    #         loss += 1
+    #         # if len(states) > 2:
+    #         #     ShowSearch(states, 60).run()
+    # print(success, loss)
