@@ -1,6 +1,7 @@
 import argparse
 from agents import SearchAgent, DpllAgent
 from game import ShowAgent, UI
+from board import Board
 
 parser = argparse.ArgumentParser(
     prog="MineSweeper", description="A simple minesweeper game", epilog="Thanks for playing!")
@@ -23,7 +24,8 @@ parser.add_argument("--epoch", "-e", type=int, default=100,
 
 
 def run_game():
-    agent = SearchAgent()
+    board = Board(10, 10, 10)
+    agent = SearchAgent(board)
     states = agent.run()
     ui = ShowAgent(states)
     ui.run()
