@@ -188,11 +188,12 @@ class Board(object):
         """
         return any([self.__mask[b[0], b[1]] == 1 for b in self.__bombs])
 
-    def apply_action(self, action: Tuple[int, int, Literal["reveal", "mark"]]) -> 'Board':
+    def apply_action(self, action: Tuple[int, int, Literal["reveal", "mark"]], copy: bool = True) -> 'Board':
         """
         This function applies an action to the board
+
         """
-        new_board = self.copy()
+        new_board = self.copy() if copy else self
         if action[2] == "reveal":
             new_board.reveal(action[0], action[1])
         elif action[2] == "mark":
