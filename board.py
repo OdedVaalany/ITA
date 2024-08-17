@@ -103,7 +103,6 @@ class Board(object):
         # Randomly sample the required number of unique positions
         self.__bombs = set(random.sample(
             all_positions, self.__number_of_bombs))
-
         # Place the bombs on the board
         for r, c in self.__bombs:
             self.__board[r, c] = Board.BOMB_VALUE
@@ -180,7 +179,8 @@ class Board(object):
         """
         This function checks if the board is solved
         """
-        return self.num_of_opens == self.__size[0]*self.__size[1] - len(self.__bombs)
+        num_of_opens = self.__size[0]*self.__size[1] - len(self.__bombs)
+        return self.__num_of_markers ==  len(self.__bombs)
 
     def is_failed(self) -> bool:
         """
@@ -188,16 +188,16 @@ class Board(object):
         """
         return any([self.__mask[b[0], b[1]] == 1 for b in self.__bombs])
 
-    def apply_action(self, action: Tuple[int, int, Literal["reveal", "mark"]]) -> 'Board':
-        """
-        This function applies an action to the board
-        """
-        new_board = self.copy()
-        if action[2] == "reveal":
-            new_board.reveal(action[0], action[1])
-        elif action[2] == "mark":
-            new_board.mark(action[0], action[1])
-        return new_board
+    # def apply_action(self, action: Tuple[int, int, Literal["reveal", "mark"]]) -> 'Board':
+    #     """
+    #     This function applies an action to the board
+    #     """
+    #     new_board = self.copy()
+    #     if action[2] == "reveal":
+    #         new_board.reveal(action[0], action[1])
+    #     elif action[2] == "mark":
+    #         new_board.mark(action[0], action[1])
+    #     return new_board
 
     def get_square(self, cell: Tuple[int, int]) -> np.ndarray:
         """
@@ -228,7 +228,7 @@ class Board(object):
                     return 'reveal'  # The cell is good for revealing
         return 'noop'
 
-    def relax_square(self, square: np.ndarray) -> np.ndarray:
+    def relax_square( square: np.ndarray) -> np.ndarray:
         """
         This function relaxes the square
         """
@@ -239,27 +239,51 @@ class Board(object):
                            j] -= np.count_nonzero(square[i-1:i+2, j-1:j+2] == FLAG)
         return square
 
-    def get_actions(self) -> List[Tuple[int, int, Literal["reveal", "mark", "noop"]]]:
-        """
-        This function returns the list of actions that can be taken
-        """
-        actions = []
-        for cell in self.avilable_states:
-            act = self.what_action_for_this_cell(cell)
-            if act != 'noop':
-                actions.append((*cell, act))
-        if len(actions) == 0:
-            if self.num_of_opens < 4:
-                if self.__mask[0, 0] == 0:
-                    actions += [(0, 0, 'reveal')]
-                if self.__mask[0, self.size[1]-1] == 0:
-                    actions += [(0, self.size[1]-1, 'reveal')]
-                if self.__mask[self.size[0]-1, 0] == 0:
-                    actions += [(self.size[0]-1, 0, 'reveal')]
-                if self.__mask[self.size[0]-1, self.size[1]-1] == 0:
-                    actions += [(self.size[0]-1, self.size[1]-1, 'reveal')]
-            else:
-                random_cell = random.choice(self.avilable_states)
-                actions += [(random_cell[0], random_cell[1], 'reveal')]
+    # def get_actions(self) -> List[Tuple[int, int, Literal["reveal", "mark", "noop"]]]:
+    #     """
+    #     This function returns the list of actions that can be taken
+    #     """
+    #     actions = []
+    #     for cell in self.avilable_states:
+    #         act = self.what_action_for_this_cell(cell)
+    #         if act != 'noop':
+    #             actions.append((*cell, act))
+    #     if len(actions) == 0:
+    #         if self.num_of_opens < 4:
+    #             if self.__mask[0, 0] == 0:
+    #                 actions += [(0, 0, 'reveal')]
+    #             if self.__mask[0, self.size[1]-1] == 0:
+    #                 actions += [(0, self.size[1]-1, 'reveal')]
+    #             if self.__mask[self.size[0]-1, 0] == 0:
+    #                 actions += [(self.size[0]-1, 0, 'reveal')]
+    #             if self.__mask[self.size[0]-1, self.size[1]-1] == 0:
+    #                 actions += [(self.size[0]-1, self.size[1]-1, 'reveal')]
+    #         else:
+    #             random_cell = random.choice(self.avilable_states)
+    #             actions += [(random_cell[0], random_cell[1], 'reveal')]
 
-        return actions
+    #     return actions
+    
+    def open_first(self):
+        available_states = self.avilable_states
+        random.shuffle(available_states)
+        for cell in available_states:
+            if (self.__board[cell[0],cell[1]] == 0):
+                self.apply_action((cell[0],cell[1]), "reveal")
+                return self
+        
+        
+        return self
+    
+
+    def print_current_board(self):
+    
+        tmp = self.__board.copy()
+        tmp[self.__mask == 0] = -1
+        tmp[self.__mask == 2] = -2
+        print(tmp)
+        return self
+    
+    def set_board(self, board):
+        self.__board = board
+        return self
