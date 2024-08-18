@@ -21,37 +21,47 @@ class Decision_Tree:
         self.board = board
         self.max_depth = max_depth
         self.model = [None]*8
+        self.__single_mode = False
         for i in range(8):
-            self.model[i] = tree.DecisionTreeClassifier(max_depth=max_depth)
+            self.model[i] = tree.DecisionTreeClassifier()
+
+
+    def special_train(self):
+        index = 0
+        for (a,b) in [(2,2),(2,1),(2,0),(1,2),(1,0),(0,2),(0,1),(0,0)]:
+            states , tags = create_all_possible_states(a,b)
+            processed_X , processed_y = change_confilicting_tags(states,tags)
+            self.model[index].fit(processed_X,processed_y)
+            index += 1
 
     def train(self, X, y):
-        sub_trees_samples = [[] for _ in range(8)]
-        sub_tree_tags = [[] for _ in range(8)]
-        tag_index = 0
-        for sample, tag in zip(X, y):
-            sample = sample.reshape((5, 5))
-            
-            for (x, y) in [(1, 1), (1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2), (3, 3)]:
-                for index in range(8):
-                    sub_trees_samples[index].append(self.get_3_by_3(sample, x, y))
-                    sub_tree_tags[index].append(tag)
-        for i in range(8):
-            sub_trees_samples[i] , sub_tree_tags[i] = change_confilicting_tags(sub_trees_samples[i], sub_tree_tags[i])
-        # new_X  = expend_features(new_X)
-        # print(X[0])
-        # print(new_X[0])
-        for i in range(8):
-            self.model[i].fit(sub_trees_samples[i],sub_tree_tags[i])
+        self.__single_model = True
+        self.model[0].fit(X,y)
 
     def decision(self, state):
+        if self.__single_model:
+            return self.model[0].predict([state])[0]
         # new_state = expend_features([state])[0]
         state = state.reshape((5, 5))
-        for (x, y) in [(1, 1), (1, 2), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2), (3, 3)]:
-            for index in range(8):
-                if self.model[index].predict([self.get_3_by_3(state, x, y)]) == 1:
-                    return 1
-                elif self.model[index].predict([self.get_3_by_3(state, x, y)]) == 0:
-                    return 0
+        index = 0
+        for i in range(len(state)):
+            for j in range(len(state[0])):
+                if state[i][j] == -10:
+                    state[i][j] = -1
+        for (x, y) in [(1,1),(1,2),(1,3),(2,1),(2,3),(3,1),(3,2),(3,3)]:
+            if self.model[index].predict([self.get_3_by_3(state, x, y)]) == 1:
+                print("model"   , index)
+                print(self.get_3_by_3(state, x, y))
+
+                return 1
+            elif self.model[index].predict([self.get_3_by_3(state, x, y)]) == 0:
+                print("model"   , index)
+                print(self.get_3_by_3(state, x, y))
+                return 0
+            index += 1
+
+
+        
         return 2
 
     def get_3_by_3(self , matrix, x, y):
@@ -60,20 +70,56 @@ class Decision_Tree:
     
 
     
-class RandomForestAgent:
-    def __init__(self, board, n_estimators=25, max_depth=25):
+    def __init__(self, board, max_depth=25):
         self.board = board
         self.max_depth = max_depth
-        self.model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, criterion='entropy', bootstrap = True)
+        self.model = [None]*8
+        for i in range(8):
+            self.model[i] = RandomForestClassifier(max_depth=max_depth)
+
+
+    def special_train(self):
+        index = 0
+        for (a,b) in [(2,2),(2,1),(2,0),(1,2),(1,0),(0,2),(0,1),(0,0)]:
+            states , tags = create_all_possible_states(a,b)
+            processed_X , processed_y = change_confilicting_tags(states,tags)
+            self.model[index].fit(processed_X,processed_y)
+            index += 1
 
     def train(self, X, y):
-        new_X , new_y = change_confilicting_tags(X,y)
-        new_X  = expend_features(new_X)
-        self.model.fit(new_X,new_y)
+        
+        # new_X  = expend_features(new_X)
+        # print(X[0])
+        # print(new_X[0])
+        self.model[0].fit(X,y)
 
     def decision(self, state):
-        new_state = expend_features([state])
-        return self.model.predict([new_state])
+        # new_state = expend_features([state])[0]
+        state = state.reshape((5, 5))
+        index = 0
+        for i in range(len(state)):
+            for j in range(len(state[0])):
+                if state[i][j] == -10:
+                    state[i][j] = -1
+        for (x, y) in [(1,1),(1,2),(1,3),(2,1),(2,3),(3,1),(3,2),(3,3)]:
+            if self.model[index].predict([self.get_3_by_3(state, x, y)]) == 1:
+                print("model"   , index)
+                print(self.get_3_by_3(state, x, y))
+
+                return 1
+            elif self.model[index].predict([self.get_3_by_3(state, x, y)]) == 0:
+                print("model"   , index)
+                print(self.get_3_by_3(state, x, y))
+                return 0
+            index += 1
+
+
+        
+        return 2
+
+    def get_3_by_3(self , matrix, x, y):
+        matrix = matrix.copy()
+        return matrix[x-1:x+2,y-1:y+2].flatten()
 
     
 Boards = {"Beginer" : Board((9, 9) , 0.125),
@@ -85,28 +131,34 @@ Boards = {"Beginer" : Board((9, 9) , 0.125),
 if __name__ == "__main__":
     
 
-    difficulty = "Intermidate"
+    difficulty = "Beginer"
     board = Boards[difficulty]
-    epoches = 60000
-    dt = Decision_Tree(board,25)
+    epoches = 100000
+    dt = Decision_Tree(board,None)
     # dt = RandomForestAgent(board , 25 , 25)
     X = []
     y = []
     number_of_games = 100
     file_name = f"data.{epoches}.pkl"
-    data_size , tags_size = create_data_set(board , epoches , file_name)
+    # data_size , tags_size = create_data_set(board , epoches , file_name)
+    # print(data_size , tags_size)
+    
+    # print(len(states))
     
     with open(file_name, 'rb') as f:
         X, y = pickle.load(f)
+    print(len(X) , len(y))
+
+
+
+
     winCounter = 0
-    print(len(X) ,len(y))
-    
-    
+   
+    # dt.special_train()
+
+
+
     dt.train(X,y)
-    # plt.figure()
-    # tree.plot_tree(dt.model,filled=True)
-    # plt.title("Decision tree trained on all the iris features")
-    # plt.show()
     for game_number in range(number_of_games):
         print(game_number)
         board.reset()

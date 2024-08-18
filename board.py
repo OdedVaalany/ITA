@@ -14,7 +14,7 @@ class Board(object):
     PRECENTAGE_OF_BOMBS = 0.1
 
     BOMB_VALUE = 10
-    MARK_VALUE = -20
+    MARK_VALUE = -2
     HIDDEN_VALUE = -1
 
     HIDDEN_MASK_VALUE = 0
@@ -180,13 +180,13 @@ class Board(object):
         This function checks if the board is solved
         """
         num_of_opens = self.__size[0]*self.__size[1] - len(self.__bombs)
-        return self.__num_of_markers ==  len(self.__bombs)
+        return (self.__num_of_markers ==  len(self.__bombs) and len(self.avilable_states) == 0)
 
     def is_failed(self) -> bool:
         """
         This function checks if the board is failed (i.e. a bomb is revealed)
         """
-        return any([self.__mask[b[0], b[1]] == 1 for b in self.__bombs])
+        return any([self.__mask[b[0], b[1]] == 1 for b in self.__bombs]) or len(self.avilable_states) == 0
 
     # def apply_action(self, action: Tuple[int, int, Literal["reveal", "mark"]]) -> 'Board':
     #     """
@@ -265,13 +265,11 @@ class Board(object):
     #     return actions
     
     def open_first(self):
-        available_states = self.avilable_states
-        random.shuffle(available_states)
-        for cell in available_states:
-            if (self.__board[cell[0],cell[1]] == 0):
-                self.apply_action((cell[0],cell[1]), "reveal")
-                return self
-        
+        for row in range(self.__size[0]):
+            for col in range(self.__size[1]):
+                if self.__board[row, col] == 0:
+                    self.apply_action((row, col), "reveal")
+                    return self
         
         return self
     
@@ -284,6 +282,16 @@ class Board(object):
         print(tmp)
         return self
     
-    def set_board(self, board):
+    def set_board(self, board, mask):
         self.__board = board
+        self.__mask = mask
+        self.__number_of_bombs = 0
+        self.__num_of_markers = 0
+        self.__num_of_opens = 0
+        self.__set_numbers()
         return self
+    def get_board(self):
+        tmp = self.__board.copy()
+        tmp[self.__mask == 0] = -1
+        tmp[self.__mask == 2] = -2
+        return tmp

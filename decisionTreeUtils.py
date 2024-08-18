@@ -23,10 +23,9 @@ def random_choice(board):
 
 def make_one_move(board, agent):
     ##make move if pass the filter (3 revealed cells around the middle cell) or random cell
-    available_states = board.avilable_states
-    random.shuffle(available_states)
-    for cell in available_states:
-            cell = (cell[0], cell[1])
+    for row in range(board.size[0]):
+        for col in range(board.size[1]):
+            cell = (row, col)
             if board.is_revealed(cell[0],cell[1]) or board.is_marked(cell[0],cell[1]):
                 continue
             state = board.get_square(cell)
@@ -62,31 +61,35 @@ def agent_play(board , agent):
     while not done:
         make_one_move(board, agent)
         move_counter += 1
-        if(board.is_solved() or board.is_failed()):
-            done = True
+        
         if(board.is_solved()):
             return True
-        # board.print_current_board()
-    print(f"Game Over! Total moves: {move_counter}")
+        if(board.is_failed()):
+            done = True
+            print(f"Game Over! Total moves: {move_counter}")
+            return False
+        board.print_current_board() 
+    
     return False
 
 
 def filter_states(state):
-        size = len(state)
-        middle = size//2
-        count = 0
-        if (state[middle][middle] !=  Board.HIDDEN_VALUE):
-            return False
-        for i in range(-1,2):
-            for j in range(-1,2):
-                if i ==j and i == 0:
-                    continue
-                if state[middle+i][middle+j] != Board.HIDDEN_VALUE:
-                    count+=1
-                    if count > 0:
-                        return True
+        return True
+        # size = len(state)
+        # middle = size//2
+        # count = 0
+        # if (state[middle][middle] !=  Board.HIDDEN_VALUE):
+        #     return False
+        # for i in range(-1,2):
+        #     for j in range(-1,2):
+        #         if i ==j and i == 0:
+        #             continue
+        #         if state[middle+i][middle+j] != Board.HIDDEN_VALUE:
+        #             count+=1
+        #             if count > 0:
+        #                 return True
         
-        return False
+        # return False
 
 
 def feature_vector(state):
@@ -139,9 +142,9 @@ def generate_bomb_arrangements(k):
     return bomb_arrangements
 
     
-def generate_hidden_matrices(matrix , k):
+def generate_hidden_matrices( k):
     # Start with a 3x3 matrix with all cells visible (0)
-    base_matrix = matrix
+    base_matrix = np.ones((3, 3), dtype=int)
     
     # Get all possible positions (9 cells in total)
     all_positions = [(i, j) for i in range(3) for j in range(3)]
@@ -158,7 +161,7 @@ def generate_hidden_matrices(matrix , k):
         
         # Hide the selected positions (set them to -1)
         for pos in hidden_positions:
-            new_matrix[pos] = 1
+            new_matrix[pos] = 0
         
         matrices.append(new_matrix)
     
@@ -188,6 +191,7 @@ def change_confilicting_tags(X: np.ndarray, y: np.ndarray) -> np.ndarray:
             # Check if there's a conflicting tag
             existing_index = sample_dict[sample_tuple]
             if y[existing_index] != y[i]:
+                # print("happens")
                 # Change both tags to 2
                 y[existing_index] = 2
                 y[i] = 2
@@ -290,8 +294,8 @@ def run_parallel_episodes(num_episodes, Boards, file_name):
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = []
         for i in range(num_episodes//batch_episodes):
-            if i % 1000 == 0:
-                print("crated" ,i)
+            
+            print("crated" ,i)
                 # print(f"Processed {i + 1}/{num_episodes} episodes")
                 # print(f"Data size: {len(X)} samples")
             futures.append(executor.submit(run_episode, i, Boards , batch_episodes) )
@@ -300,9 +304,9 @@ def run_parallel_episodes(num_episodes, Boards, file_name):
             episode_X, episode_y ,episode_wins= future.result()
             X.extend(episode_X)
             y.extend(episode_y)
-            if( i % 100 ==0):
-                print(f"Processed {i + 1}/{num_episodes//batch_episodes} episodes")
-                print(f"Data size: {len(X)} , {len(y)} samples")
+           
+            print(f"Processed {i + 1}/{num_episodes//batch_episodes} episodes")
+            print(f"Data size: {len(X)} , {len(y)} samples")
             if i % 1000000 == 0:
                 with open(file_name, 'wb') as f:
                     pickle.dump((X, y), f)
@@ -318,3 +322,75 @@ def create_data_set(boards , num_episodes,file_name):
     return run_parallel_episodes(num_episodes , boards , file_name)
 
 
+def create_all_possible_states(a,b):
+    states = []
+    y = []
+    for number_of_bombs in range(10):  # 0 to 9 bombs
+        bomb_arrangements = generate_bomb_arrangements(number_of_bombs)
+        for matrix in bomb_arrangements:
+            matrix = generate_numbers(matrix)
+            for number_of_hidden in range(10):  # 0 to 9 hidden cells
+                hidden_matrices = generate_hidden_matrices(number_of_hidden)
+                for mask in hidden_matrices:
+                    state , tag= create_state(matrix, mask , a,b)
+                    states.append(np.array(state).flatten())
+                    y.append(tag)
+    return states,y
+
+def generate_numbers(board):
+    x, y, v = [], [], []
+    
+    for i in range(3):
+        for j in range(3):
+            if board[i, j] == Board.BOMB_VALUE:
+                continue
+            x.append(i)
+            y.append(j)
+            
+            # Slicing the submatrix around (i, j)
+            submatrix = board[max(0, i-1):min(3, i+2), max(0, j-1):min(3, j+2)]
+            
+            # Counting the bombs in the submatrix
+            bomb_count = np.count_nonzero(submatrix == Board.BOMB_VALUE)
+            
+            v.append(bomb_count)
+    
+    # Update the board with the bomb counts
+    for i, j, val in zip(x, y, v):
+        board[i, j] = val
+    
+    return board
+
+
+def create_state(board , mask , a,b):
+    state = np.zeros((3,3))
+    for i in range(3):
+        for j in range(3):
+            if mask[i][j] == 0:
+                state[i][j] = -1
+            elif mask[i][j] == 1:
+                if board[i][j] == Board.BOMB_VALUE:
+                    state[i][j] = -2
+                else:
+                    state[i][j] = board[i][j]
+            
+    if(board[a][b] == Board.BOMB_VALUE):
+        tag = 0
+    else:
+        tag = 1
+    return state ,tag
+
+
+def create_tags(states,a,b):
+    y = []
+    for index in range(len(states)):
+        state = states[index]
+        print(state)
+        if(state[a][b] == Board.MARK_VALUE):
+            y.append(MARK_TAG)
+            print("bomb")
+        else:
+            y.append(REVEAL_TAG)
+            print("safe")
+
+    return y
