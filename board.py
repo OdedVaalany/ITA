@@ -29,10 +29,13 @@ class Board(object):
         self.__number_of_bombs = 0
         self.reset()
 
-    def reset(self) -> None:
+    def reset(self, keep_the_same=False) -> None:
         """
         Reset the board
         """
+        if keep_the_same:
+            self.__mask = np.zeros(self.__size, dtype=int)
+            return
         self.__board = np.zeros(self.__size, dtype=int)
         self.__mask = np.zeros(self.__size, dtype=int)
         self.__number_of_bombs = 0

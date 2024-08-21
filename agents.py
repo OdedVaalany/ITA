@@ -1,18 +1,32 @@
 from search import greedy_search
 from search_problem import MinesweeperSearchProblem
+from game import UI
 
 
 class Agent():
-    def __init__(self, board):
+    def __init__(self, board, name):
         self.board = board
+        self.__name__ = name
 
     def run(self):
         raise NotImplementedError
 
+    def __str__(self):
+        return self.__name__
+
+
+class ManualAgent(Agent):
+    def __init__(self, board):
+        super().__init__(board, "manual")
+
+    def run(self):
+        ui = UI(self.board)
+        ui.run()
+
 
 class SearchAgent(Agent):
     def __init__(self, board):
-        super().__init__(board)
+        super().__init__(board, "search")
 
     def run(self):
         return greedy_search(MinesweeperSearchProblem(self.board))
@@ -20,7 +34,7 @@ class SearchAgent(Agent):
 
 class DpllAgent(Agent):
     def __init__(self, board):
-        super().__init__(board)
+        super().__init__(board, "dpll")
 
     def run(self):
         pass

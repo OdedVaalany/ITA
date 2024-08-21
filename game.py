@@ -76,7 +76,7 @@ class UI:
             self.clock.tick(60)
 
 
-class ShowAgent(UI):
+class ShowUI(UI):
     def __init__(self, states: List[Board], epoch: int = 10) -> None:
         super().__init__(states[0])
         self.states = states
