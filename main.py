@@ -24,7 +24,7 @@ parser.add_argument("--num_of_games", "-n", type=int,
                     default=1, help="Number of games to play")
 parser.add_argument("--epoch", "-e", type=int, default=100,
                     help="The time for state in ms, when using not humen interaction and allow ui to be True")
-parser.add_argument("--output", "-o", type=str, default="output",
+parser.add_argument("--output", "-o", type=str, default=None,
                     help="The output folder to save the result")
 
 
@@ -80,7 +80,8 @@ if __name__ == "__main__":
         raise ValueError("At least one agent must be selected")
 
     if args.output and not check_folder(args.output):
-        raise ValueError("Output folder does not exist")
+        print("Output folder does not exist")
+        exit(0)
 
     if args.epoch < 0:
         raise ValueError("Epoch must be positive")
@@ -105,6 +106,8 @@ if __name__ == "__main__":
         states = agent.run()
         ShowUI(states, args.epoch).run()
     else:
+        if not args.output:
+            args.output = os.path.dirname(__file__)
         with open(os.path.join(args.output, 'logs.txt'), "w") as f:
             f.write("Game,Level,Agent,Result,Num of steps,Time\n")
             for i in range(args.num_of_games):
@@ -115,7 +118,8 @@ if __name__ == "__main__":
                     start_time = time.time()
                     states = agent.run()
                     delta = time.time() - start_time
-                    result = "Success" if states[-1].is_solved() else "Failed"
+                    result = "Success" if states[-1].is_solved() else (
+                        "Failed" if states[-1].is_failed() else "Unknown")
                     f.write(f"{i},{args.level},{agent},{
                             result},{len(states)},{delta}\n")
                     f.flush()
