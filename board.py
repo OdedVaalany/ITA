@@ -16,6 +16,7 @@ class Board(object):
     BOMB_VALUE = 10
     MARK_VALUE = -20
     HIDDEN_VALUE = -1
+    OUT_OF_BOUNDS_VALUE = -10
 
     HIDDEN_MASK_VALUE = 0
     REVEALED_MASK_VALUE = 1
@@ -135,6 +136,10 @@ class Board(object):
 
     def reveal(self, row: int, col: int) -> None:
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
+        if self.num_of_opens == 0 and self.__board[row, col] == Board.BOMB_VALUE:
+            self.__board[:, :] = 0
+            self.__generate_bomb()
+            self.__set_numbers()
         if self.__mask[row, col] != 0:
             return
         if self.__board[row, col] == 0:
@@ -209,7 +214,8 @@ class Board(object):
         """
         if cell[0] > 1 and cell[0] + 2 < self.__size[0] and cell[1] > 1 and cell[1]+2 < self.__size[1]:
             return self[cell[0]-2:cell[0]+3, cell[1]-2:cell[1]+3]
-        tmp = np.full((self.size[0]+4, self.size[1]+4), -10)
+        tmp = np.full((self.size[0]+4, self.size[1]+4),
+                      Board.OUT_OF_BOUNDS_VALUE)
         tmp[2:-2, 2:-2] = self[:, :]
         return tmp[cell[0]:cell[0]+5, cell[1]:cell[1]+5]
 
@@ -223,10 +229,10 @@ class Board(object):
                 if i == 2 and j == 2:
                     continue
                 if sq[i, j] == 1:
-                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != EMPTY) == 8:
+                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != Board.HIDDEN_VALUE) == 8:
                         return 'mark'  # The cell is good for flagging
                 if sq[i, j] == 2:
-                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != EMPTY) == 7:
+                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != Board.HIDDEN_VALUE) == 7:
                         return 'mark'  # The cell is good for flagging
                 if sq[i, j] == 0:
                     return 'reveal'  # The cell is good for revealing
