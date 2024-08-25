@@ -1,6 +1,7 @@
 from search import greedy_search
 from search_problem import MinesweeperSearchProblem
 from game import UI
+from dpll_solver import dpll
 
 
 class Agent():
@@ -35,7 +36,7 @@ class SearchAgent(Agent):
 class DpllAgent(Agent):
     def __init__(self, board):
         super().__init__(board, "dpll")
+        self.__dpll = dpll(board)
 
     def run(self):
-        pass
-        # bussiness logic
+        return self.__dpll.run()
