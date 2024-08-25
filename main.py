@@ -5,6 +5,7 @@ from board import Board
 from typing import *
 import os
 import time
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser(
     prog="MineSweeper", description="A simple minesweeper game", epilog="Thanks for playing!")
@@ -113,9 +114,10 @@ if __name__ == "__main__":
             time_counter = [0, 0, 0]  # Success, Failed, Unknown
             steps_size = [0, 0, 0]  # Success, Failed, Unknown
             result_map = ["Success", "Failed", "Unknown"]
+            print(f"Agent {ag.__name__} for level {args.level}")
             with open(os.path.join(args.output, f'logs_{ag.__name__}.txt'), "w") as f:
                 f.write("Game,Level,Result,Num of steps,Time\n")
-                for i in range(args.num_of_games):
+                for i in tqdm(range(args.num_of_games)):
                     board = get_board(args.level)
                     agent = ag(board)
                     start_time = time.time()

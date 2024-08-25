@@ -105,8 +105,11 @@ class Board(object):
                          for c in range(self.__size[1])]
 
         # Randomly sample the required number of unique positions
-        self.__bombs = set(random.sample(
-            all_positions, self.__number_of_bombs))
+        self.__bombs = []
+        while len(self.__bombs) < self.__number_of_bombs:
+            bomb = random.choice(all_positions)
+            self.__bombs.append(bomb)
+            all_positions.remove(bomb)
 
         # Place the bombs on the board
         for r, c in self.__bombs:

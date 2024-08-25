@@ -24,41 +24,11 @@ class dpll():
 
         self.board = board
         self.height, self.width = board.size
-        self.screen = pygame.display.set_mode(
-            (self.width * BLOCK_SIZE, self.height * BLOCK_SIZE + 50))
-        self.clock = pygame.time.Clock()
         self.start_time = time()
-        pygame.font.init()
-        self.font = pygame.font.Font(None, 30)
         self.running = True
         self.revealed = 0
         self.satisfied = [[False for _ in range(
             self.cols)] for _ in range(self.rows)]
-
-    def draw_blocks(self):
-        for i in range(self.height):
-            for j in range(self.width):
-                imp = pygame.image.load(
-                    ASSETS_IMAGES[self.board[i, j]]).convert()
-                self.screen.blit(imp, (j * BLOCK_SIZE, i * BLOCK_SIZE))
-
-    def draw_text(self):
-        text = self.font.render(
-            f"Flags: {self.board.num_of_markers} \t Time: {format_time(time() - self.start_time)}", True, "black")
-        self.screen.blit(text, (0, self.height * BLOCK_SIZE + 10))
-
-    def handle_click(self, event):
-        x, y = pygame.mouse.get_pos()
-        x = x // BLOCK_SIZE
-        y = y // BLOCK_SIZE
-        click_func = self.board.reveal
-        if event.button == 3:
-            click_func = self.board.mark
-        if x < self.width and y < self.height and y >= 0 and x >= 0:
-            if (self.board.is_bomb(y, x) and event.button == 1):
-                self.board.reveal_all()
-            else:
-                click_func(y, x)
 
     def get_pure_literals(self, clauses):
         res = []
@@ -189,9 +159,11 @@ class dpll():
                         # print("is a bomb in apply assignment", k, j)
                         self.hundle_click("open", k, j)
 
-                        return "bomb"
+                        return self.board.copy()
+        return self.board.copy()
 
     def run(self):
+        boards = []
         cell = self.guess()
         if cell == None:
             return
@@ -200,26 +172,33 @@ class dpll():
 
         if self.board.is_bomb(cell[0], cell[1]):
             self.hundle_click("open", cell[0], cell[1])
-            self.screen.fill("white")
-            return self.board
+            return [self.board.copy()]
         else:
             self.hundle_click("open", cell[0], cell[1])
 
-        while len(self.board.avilable_states) > 0:
+        boards += self.run_iteration()
+
+        return boards
+
+    def run_iteration(self):
+        res = []
+        for i in range(2*self.board.size[0]*self.board.size[1]):
             clauses = self.generate_cnf_clauses()
             satisfiable, assignments = self.dp_solve(clauses, [], [])
             if satisfiable:
                 # print("SATISFIABLE: ", assignments)
                 this_apply = self.apply_assignment(assignments)
-                if this_apply == "bomb":
-                    return self.board
+                res.append(self.board.copy())
+                if this_apply.is_failed():
+                    res.append(this_apply)
+                    return res
                 else:
                     continue
             else:
                 pass
                 # print("UNSATISFIABLE")
-            sleep(1)
-        return self.board
+                res.append(self.board.copy())
+        return res
 
     def get_neighbors(self, i, j):
         return [(i + x, j + y) for x in [-1, 0, 1] for y in [-1, 0, 1] if
