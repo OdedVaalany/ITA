@@ -128,8 +128,7 @@ if __name__ == "__main__":
                     counter[result] += 1
                     steps_size[result] += len(states)
                     time_counter[result] += delta
-                    f.write(f"{i},{args.level},{
-                            result},{len(states)},{delta}\n")
+                    f.write(f"{i},{args.level},{result},{len(states)},{delta}\n")
                     f.flush()
             print(f"Agent {ag.__name__} for level {args.level}")
             print('\n'*3)

@@ -145,6 +145,7 @@ class Board(object):
             self.__board[:, :] = 0
             self.__generate_bomb((row, col))
             self.__set_numbers()
+            self.reveal(row, col)
         if self.__mask[row, col] != 0:
             return
         if self.__board[row, col] == 0:
@@ -193,7 +194,7 @@ class Board(object):
         """
         This function checks if the board is solved
         """
-        return self.num_of_opens == self.__size[0]*self.__size[1] - len(self.__bombs)
+        return len(self.bombs) == self.num_of_markers 
 
     def is_failed(self) -> bool:
         """
