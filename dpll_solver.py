@@ -159,7 +159,7 @@ class dpll():
                     self.hundle_click("open", k, j)
                     if self.board.is_failed() or self.board.is_solved():
                         # print("is a bomb in apply assignment", k, j)
-                        self.hundle_click("open", k, j)
+                        # self.hundle_click("open", k, j)
 
                         return boards
         return boards

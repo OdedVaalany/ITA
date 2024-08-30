@@ -194,7 +194,7 @@ class Board(object):
         """
         This function checks if the board is solved
         """
-        return len(self.bombs) == self.num_of_markers 
+        return len(self.bombs) == self.num_of_markers  and len(self.avilable_states) == 0
 
     def is_failed(self) -> bool:
         """
