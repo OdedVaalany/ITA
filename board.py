@@ -94,7 +94,7 @@ class Board(object):
     def is_marked(self, r: int, c: int) -> bool:
         return self.__mask[r, c] == Board.MARKED_MASK_VALUE
 
-    def __generate_bomb(self):
+    def __generate_bomb(self, avoid: Tuple[int, int] = None) -> None:
         if self.__bomb_density > 1:
             self.__number_of_bombs = self.__bomb_density
         else:
@@ -103,6 +103,8 @@ class Board(object):
         # Generate all possible cell positions as a list of tuples
         all_positions = [(r, c) for r in range(self.__size[0])
                          for c in range(self.__size[1])]
+        if avoid is not None:
+            all_positions.remove(avoid)
 
         # Randomly sample the required number of unique positions
         self.__bombs = []
@@ -141,7 +143,7 @@ class Board(object):
         assert 0 <= row < self.__size[0] and 0 <= col < self.__size[1], "Invalid position"
         if self.num_of_opens == 0 and self.__board[row, col] == Board.BOMB_VALUE:
             self.__board[:, :] = 0
-            self.__generate_bomb()
+            self.__generate_bomb((row, col))
             self.__set_numbers()
         if self.__mask[row, col] != 0:
             return
@@ -222,7 +224,7 @@ class Board(object):
         tmp[2:-2, 2:-2] = self[:, :]
         return tmp[cell[0]:cell[0]+5, cell[1]:cell[1]+5]
 
-    def what_action_for_this_cell(self, cell: Tuple[int, int]) -> Literal["reveal", "mark", "noop"]:
+    def what_action_for_this_cell(self, cell: Tuple[int, int]) -> Literal["reveal", "mark", "noop", "optional"]:
         """
         This function returns the best action for a cell
         """
@@ -231,15 +233,37 @@ class Board(object):
             for j in range(1, 4):
                 if i == 2 and j == 2:
                     continue
-                if sq[i, j] == 1:
-                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != Board.HIDDEN_VALUE) == 8:
-                        return 'mark'  # The cell is good for flagging
-                if sq[i, j] == 2:
-                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != Board.HIDDEN_VALUE) == 7:
+                # if sq[i, j] == 1:
+                #     if np.count_nonzero(sq[i-1:i+2, j-1:j+2] != Board.HIDDEN_VALUE) == 8:
+                #         return 'mark'  # The cell is good for flagging
+                if sq[i, j] > 0:
+                    if np.count_nonzero(sq[i-1:i+2, j-1:j+2] == Board.HIDDEN_VALUE) == sq[i, j]:
                         return 'mark'  # The cell is good for flagging
                 if sq[i, j] == 0:
                     return 'reveal'  # The cell is good for revealing
-        return 'noop'
+        if np.count_nonzero(sq[1:4, 1:4] != Board.HIDDEN_VALUE) + np.count_nonzero(sq[1:4, 1:4] != Board.OUT_OF_BOUNDS_VALUE) == 9:
+            return 'noop'
+        return 'optional'
+
+    def get_prob_for_optinal_cells(self, cell: Tuple[int, int]) -> float:
+        """
+        This function returns the probability of a cell to be a bomb
+        """
+        sq = self.relax_square(self.get_square(cell))
+        if sq[2, 1] == Board.HIDDEN_VALUE and sq[2, 3] == Board.HIDDEN_VALUE and sq[1, 2] == Board.HIDDEN_VALUE and sq[3, 2] == Board.HIDDEN_VALUE:
+            return 1
+        prob = 1
+        for i in range(1, 4):
+            for j in range(1, 4):
+                if i == 2 and j == 2:
+                    continue
+                if sq[i, j] == Board.HIDDEN_VALUE:
+                    continue
+                _prob = (sq[i, j]) / \
+                    (np.count_nonzero(sq[i-1:i+2, j-1:j+2]
+                     == Board.HIDDEN_VALUE))
+                prob *= (1-_prob)
+        return 1-prob
 
     def relax_square(self, square: np.ndarray) -> np.ndarray:
         """
@@ -257,22 +281,23 @@ class Board(object):
         This function returns the list of actions that can be taken
         """
         actions = []
+        noops = []
         for cell in self.avilable_states:
             act = self.what_action_for_this_cell(cell)
-            if act != 'noop':
+            if act != 'optional' and act != 'noop':
                 actions.append((*cell, act))
+            elif act == 'optional':
+                noops.append((*cell, 'reveal'))
         if len(actions) == 0:
-            if self.num_of_opens < 4:
-                if self.__mask[0, 0] == 0:
-                    actions += [(0, 0, 'reveal')]
-                if self.__mask[0, self.size[1]-1] == 0:
-                    actions += [(0, self.size[1]-1, 'reveal')]
-                if self.__mask[self.size[0]-1, 0] == 0:
-                    actions += [(self.size[0]-1, 0, 'reveal')]
-                if self.__mask[self.size[0]-1, self.size[1]-1] == 0:
-                    actions += [(self.size[0]-1, self.size[1]-1, 'reveal')]
+            if self.num_of_opens < 1:
+                cell = random.choice(self.avilable_states)
+                return [(*cell, 'reveal')]
             else:
-                random_cell = random.choice(self.avilable_states)
-                actions += [(random_cell[0], random_cell[1], 'reveal')]
+                scores = [self.get_prob_for_optinal_cells(
+                    (x[0], x[1])) for x in noops]
+                best_prob = min(scores)
+                best_actions = [x for x, y in zip(
+                    noops, scores) if y == best_prob]
+                return best_actions
 
         return actions
