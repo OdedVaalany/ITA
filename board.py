@@ -69,6 +69,10 @@ class Board(object):
         return np.count_nonzero(self.__mask == 1)
 
     @property
+    def num_of_bombs(self) -> int:
+        return self.__number_of_bombs
+
+    @property
     def bombs(self) -> Set[Tuple[int, int]]:
         return self.__bombs
 

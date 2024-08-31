@@ -110,6 +110,16 @@ class MinesweeperSearchProblem(SearchProblem):
                 successur = state.apply_action(action)
                 next_actions.append(
                     (successur, action, np.max(_probs)+1))
+        if len(next_actions) == 0:
+            price = 0
+            if state.num_of_bombs - state.num_of_markers == len(state.avilable_states):
+                action = (*random.choice(state.avilable_states), "mark")
+                price = 0
+            else:
+                action = (*random.choice(state.avilable_states), "reveal")
+                price = 1
+            successur = state.apply_action(action)
+            next_actions.append((successur, action, price))
         return next_actions
 
     def get_cost_of_actions(self, actions):

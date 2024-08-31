@@ -61,8 +61,6 @@ def simulate_single_run(level: str, ag: Agent):
     delta = time.time() - start_time
     result = 0 if states[-1].is_solved() else (
         1 if states[-1].is_failed() else 2)
-    if result == 2:
-        ShowUI(states, 100).run()
     return level, result, len(states), delta
 
 
