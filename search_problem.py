@@ -89,6 +89,10 @@ class MinesweeperSearchProblem(SearchProblem):
         options = np.array(state.avilable_states)
         for option in options:
             _option = _board[option[0]:option[0]+5, option[1]:option[1]+5]
+            if np.all(_option[1:-1, 1:-1] != Board.HIDDEN_VALUE):
+                continue
+            is_close = _option[1, 2] > 0 or _option[2, 1] > 0 or _option[2,
+                                                                         3] > 0 or _option[3, 2] > 0
             _option = self.__process_options(_option)
             if _option.shape[0] == 0:
                 continue
@@ -101,7 +105,7 @@ class MinesweeperSearchProblem(SearchProblem):
                 action = (option[0], option[1], "reveal")
                 successur = state.apply_action(action)
                 next_actions.append((successur, action, 1))
-            else:
+            elif is_close:
                 action = (option[0], option[1], "reveal")
                 successur = state.apply_action(action)
                 next_actions.append(

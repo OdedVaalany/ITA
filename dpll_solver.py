@@ -2,7 +2,6 @@ import random
 from time import sleep
 
 # Example file showing a basic pygame "game loop"
-import pygame
 from board import Board
 from util import Counter
 from utils import *
@@ -190,7 +189,7 @@ class dpll():
             if satisfiable:
                 # print("SATISFIABLE: ", assignments)
                 boards = self.apply_assignment(assignments)
-                
+
                 if len(boards) > 0:
                     this_apply = boards[-1]
                     if this_apply.is_failed() or this_apply.is_solved():
@@ -198,7 +197,7 @@ class dpll():
                         return res
                     else:
                         res += boards
-                    
+
             # else:
             #     pass
                 # print("UNSATISFIABLE")
@@ -284,7 +283,6 @@ class dpll():
 
 
 if __name__ == "__main__":
-    # pygame setup
     board = Board((16, 16))
     dpll_agent = dpll(board)
     res = dpll_agent.run()

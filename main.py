@@ -1,11 +1,12 @@
 import argparse
-from agents import SearchAgent, DpllAgent, ManualAgent
-from game import ShowUI, UI
+from agents import SearchAgent, DpllAgent, ManualAgent, Agent
+from game import ShowUI
 from board import Board
 from typing import *
 import os
 import time
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 parser = argparse.ArgumentParser(
     prog="MineSweeper", description="A simple minesweeper game", epilog="Thanks for playing!")
@@ -50,6 +51,47 @@ def get_board(level: Literal["easy", "medium", "hard"]):
 def check_folder(path: str):
     import os
     return os.path.exists(path) and os.path.isdir(path)
+
+
+def simulate_single_run(level: str, ag: Agent):
+    board = get_board(level)
+    agent = ag(board)
+    start_time = time.time()
+    states = agent.run()
+    delta = time.time() - start_time
+    result = 0 if states[-1].is_solved() else (
+        1 if states[-1].is_failed() else 2)
+    return level, result, len(states), delta
+
+
+def simulate_multirun(args: argparse.Namespace):
+    counter = [0, 0, 0]  # Success, Failed, Unknownå
+    time_counter = [0, 0, 0]  # Success, Failed, Unknown
+    steps_size = [0, 0, 0]  # Success, Failed, Unknown
+    result_map = ["Success", "Failed", "Unknown"]
+    with open(os.path.join(args.output, f'logs_{ag.__name__}_level_{args.level}.txt'), "w") as f:
+        f.write("Game,Level,Result,Num of steps,Time\n")
+        with ProcessPoolExecutor(max_workers=7) as executor:
+            futures = [executor.submit(simulate_single_run, args.level, ag)
+                       for i in range(args.num_of_games)]
+            for i, future in tqdm(enumerate(as_completed(futures)), total=args.num_of_games):
+                level, result, steps, time = future.result()
+                f.write(f"{i},{level},{result},{steps},{time}\n")
+                f.flush()
+                counter[result] += 1
+                steps_size[result] += steps
+                time_counter[result] += time
+    print(f"Agent {ag.__name__} for level {args.level}")
+    print('\n'*1)
+    print("{:10} | {:8} | {:10} | {:10} | {:10} | {:10}".format(
+        "Achivement", "total", "total time", "total steps", "avg time", "avg steps"))
+    print('-'*100)
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "Won", counter[0], time_counter[0], steps_size[0], 0 if counter[0] == 0 else time_counter[0]/counter[0], 0 if counter[0] == 0 else steps_size[0]/counter[0]))
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "Fail", counter[1], time_counter[1], steps_size[1], 0 if counter[1] == 0 else time_counter[1]/counter[1], 0 if counter[1] == 0 else steps_size[1]/counter[1]))
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "No Op", counter[2], time_counter[2], steps_size[2], 0 if counter[2] == 0 else time_counter[2]/counter[2], 0 if counter[2] == 0 else steps_size[2]/counter[2]))
 
 
 if __name__ == "__main__":
@@ -110,34 +152,4 @@ if __name__ == "__main__":
         if not args.output:
             args.output = os.path.dirname(__file__)
         for ag in agents:
-            counter = [0, 0, 0]  # Success, Failed, Unknown
-            time_counter = [0, 0, 0]  # Success, Failed, Unknown
-            steps_size = [0, 0, 0]  # Success, Failed, Unknown
-            result_map = ["Success", "Failed", "Unknown"]
-            print(f"Agent {ag.__name__} for level {args.level}")
-            with open(os.path.join(args.output, f'logs_{ag.__name__}.txt'), "w") as f:
-                f.write("Game,Level,Result,Num of steps,Time\n")
-                for i in tqdm(range(args.num_of_games)):
-                    board = get_board(args.level)
-                    agent = ag(board)
-                    start_time = time.time()
-                    states = agent.run()
-                    delta = time.time() - start_time
-                    result = 0 if states[-1].is_solved() else (
-                        1 if states[-1].is_failed() else 2)
-                    counter[result] += 1
-                    steps_size[result] += len(states)
-                    time_counter[result] += delta
-                    f.write(f"{i},{args.level},{result},{len(states)},{delta}\n")
-                    f.flush()
-            print(f"Agent {ag.__name__} for level {args.level}")
-            print('\n'*3)
-            print("{:10} | {:8} | {:10} | {:10} | {:10} | {:10}".format(
-                "Achivement", "total", "total time", "total steps", "avg time", "avg steps"))
-            print('-'*100)
-            print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
-                "Won", counter[0], time_counter[0], steps_size[0], 0 if counter[0] == 0 else time_counter[0]/counter[0], 0 if counter[0] == 0 else steps_size[0]/counter[0]))
-            print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
-                "Fail", counter[1], time_counter[1], steps_size[1], 0 if counter[1] == 0 else time_counter[1]/counter[1], 0 if counter[1] == 0 else steps_size[1]/counter[1]))
-            print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
-                "No Op", counter[2], time_counter[2], steps_size[2], 0 if counter[2] == 0 else time_counter[2]/counter[2], 0 if counter[2] == 0 else steps_size[2]/counter[2]))
+            simulate_multirun(args)

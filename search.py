@@ -111,9 +111,12 @@ def greedy_search(problem):
             break
         successor = min(next_actions,
                         key=lambda x: x[2])
-        best_actions = [
-            action for action in next_actions if action[2] == successor[2]]
-        state = random.choice(best_actions)[0]
+        if successor[2] > 1:
+            best_actions = [
+                action for action in next_actions if action[2] == successor[2]]
+            state = random.choice(best_actions)[0]
+        else:
+            state = successor[0]
     return states
 
 

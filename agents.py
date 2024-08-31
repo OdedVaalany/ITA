@@ -36,7 +36,6 @@ class SearchAgent(Agent):
 class DpllAgent(Agent):
     def __init__(self, board):
         super().__init__(board, "dpll")
-        self.__dpll = dpll(board)
 
     def run(self):
-        return self.__dpll.run()
+        return dpll(self.board).run()
