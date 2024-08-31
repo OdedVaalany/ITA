@@ -118,18 +118,3 @@ def greedy_search(problem):
         else:
             state = successor[0]
     return states
-
-
-def random_min(seq, key=lambda x: x):
-    min_val = float('inf')
-    min_elem = None
-    for elem in seq:
-        val = key(elem)
-        if val < min_val:
-            min_val = val
-            min_elem = elem
-        elif val == min_val:
-            if util.flip_coin(0.5):
-                min_val = val
-                min_elem = elem
-    return min_elem
