@@ -149,18 +149,20 @@ class dpll():
             click_func(x, y)
 
     def apply_assignment(self, assignment):
+        boards = []
         for i in assignment:
             if i < 0:  # not bomb
                 k, j = self.var_to_cell(-i)
                 if not self.board.is_revealed(k, j):
                     self.board.apply_action((k, j, "reveal"))
+                    boards.append(self.board.copy())
                     self.hundle_click("open", k, j)
-                    if self.board.is_bomb(k, j):
+                    if self.board.is_failed() or self.board.is_solved():
                         # print("is a bomb in apply assignment", k, j)
-                        self.hundle_click("open", k, j)
+                        # self.hundle_click("open", k, j)
 
-                        return self.board.copy()
-        return self.board.copy()
+                        return boards
+        return boards
 
     def run(self):
         boards = []
@@ -182,22 +184,25 @@ class dpll():
 
     def run_iteration(self):
         res = []
-        for i in range(2*self.board.size[0]*self.board.size[1]):
+        for i in range(self.board.size[0]*self.board.size[1]):
             clauses = self.generate_cnf_clauses()
             satisfiable, assignments = self.dp_solve(clauses, [], [])
             if satisfiable:
                 # print("SATISFIABLE: ", assignments)
-                this_apply = self.apply_assignment(assignments)
-                res.append(self.board.copy())
-                if this_apply.is_failed():
-                    res.append(this_apply)
-                    return res
-                else:
-                    continue
-            else:
-                pass
+                boards = self.apply_assignment(assignments)
+                
+                if len(boards) > 0:
+                    this_apply = boards[-1]
+                    if this_apply.is_failed() or this_apply.is_solved():
+                        res += boards
+                        return res
+                    else:
+                        res += boards
+                    
+            # else:
+            #     pass
                 # print("UNSATISFIABLE")
-                res.append(self.board.copy())
+                # res.append(self.board.copy())
         return res
 
     def get_neighbors(self, i, j):
