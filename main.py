@@ -41,7 +41,7 @@ def get_agent(agent_type: Literal["search", "knowledge", "decision", "manual"]):
 
 def get_board(level: Literal["easy", "medium", "hard"]):
     if level == "easy":
-        return Board((10, 10), 10)
+        return Board((9, 9), 10)
     if level == "medium":
         return Board((16, 16), 40)
     return Board((16, 30), 99)

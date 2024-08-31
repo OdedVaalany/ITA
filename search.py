@@ -12,6 +12,7 @@ by Pacman agents (in searchAgents.py).
 """
 
 import util
+import random
 
 
 class SearchProblem:
@@ -109,8 +110,10 @@ def greedy_search(problem):
         if len(next_actions) == 0:
             break
         successor = min(next_actions,
-                        key=lambda x: x[2])[0]
-        state = successor
+                        key=lambda x: x[2])
+        best_actions = [
+            action for action in next_actions if action[2] == successor[2]]
+        state = random.choice(best_actions)[0]
     return states
 
 
