@@ -194,7 +194,7 @@ class Board(object):
         """
         This function checks if the board is solved
         """
-        return len(self.bombs) == self.num_of_markers  and len(self.avilable_states) == 0
+        return len(self.bombs) == self.num_of_markers and not np.any(self.__mask == Board.HIDDEN_VALUE)
 
     def is_failed(self) -> bool:
         """

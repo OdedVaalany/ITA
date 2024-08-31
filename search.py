@@ -108,6 +108,7 @@ def greedy_search(problem):
             break
         next_actions = problem.get_successors(state)
         if len(next_actions) == 0:
+            print("No more actions")
             break
         successor = min(next_actions,
                         key=lambda x: x[2])
