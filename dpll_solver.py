@@ -250,7 +250,7 @@ class dpll():
                 k, j = self.var_to_cell(-i)
                 if not self.board.is_revealed(k, j):
                     self.board.apply_action((k, j, "reveal"))
-                    # boards.append(self.board.copy())
+                    boards.append(self.board.copy())
                     self.hundle_click("open", k, j)
 
                     # self.board.apply_action((k, j, "open"))
@@ -264,8 +264,10 @@ class dpll():
                 if not self.board.is_marked(k, j):
                     self.hundle_click("mark", k, j)
                     self.board.apply_action((k, j, "mark"))
-                    # boards.append(self.board.copy())
-        return [self.board.copy()]
+                    boards.append(self.board.copy())
+        if(len(boards) == 0):
+            return [self.board.copy()]
+        return boards
 
     def run(self):
         boards = []
