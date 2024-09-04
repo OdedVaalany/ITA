@@ -150,6 +150,7 @@ class Board(object):
             self.__generate_bomb((row, col))
             self.__set_numbers()
             self.reveal(row, col)
+            return
         if self.__mask[row, col] != 0:
             return
         if self.__board[row, col] == 0:
@@ -198,7 +199,10 @@ class Board(object):
         """
         This function checks if the board is solved
         """
-        return len(self.bombs) == self.num_of_markers and not np.any(self.__mask == Board.HIDDEN_VALUE)
+        if (len(self.bombs) == self.num_of_markers and not np.any(self.__mask == Board.HIDDEN_VALUE)):
+            return True
+
+        return False 
 
     def is_failed(self) -> bool:
         """
@@ -217,6 +221,15 @@ class Board(object):
         elif action[2] == "mark":
             new_board.mark(action[0], action[1])
         return new_board
+
+    def open_first(self):
+        """
+        This function opens the first cell
+        """
+        for i in range(self.size[0]):
+            for j in range(self.size[1]):
+                if self.__board[i, j] ==0:
+                    return self.apply_action((i, j, "reveal"), copy=False)
 
     # def get_square(self, cell: Tuple[int, int]) -> np.ndarray:
     #     """
