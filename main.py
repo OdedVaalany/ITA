@@ -65,7 +65,7 @@ def simulate_single_run(level: str, ag: Agent):
 
 
 def simulate_multirun(args: argparse.Namespace):
-    counter = [0, 0, 0]  # Success, Failed, Unknownå
+    counter = [0, 0, 0]  # Success, Failed, Unknown
     time_counter = [0, 0, 0]  # Success, Failed, Unknown
     steps_size = [0, 0, 0]  # Success, Failed, Unknown
     result_map = ["Success", "Failed", "Unknown"]

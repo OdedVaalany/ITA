@@ -38,4 +38,5 @@ class DpllAgent(Agent):
         super().__init__(board, "dpll")
 
     def run(self):
-        return dpll(self.board).run()
+        arr = [self.board]
+        return arr + dpll(self.board).run()

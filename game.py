@@ -4,7 +4,7 @@ from board import Board
 from utils import *
 from time import time
 import numpy as np
-from search import a_star_search, greedy_search
+from search import greedy_search
 from search_problem import MinesweeperSearchProblem, huristic
 from random import choice
 from typing import List

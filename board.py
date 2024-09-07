@@ -202,7 +202,7 @@ class Board(object):
         if (len(self.bombs) == self.num_of_markers and not np.any(self.__mask == Board.HIDDEN_VALUE)):
             return True
 
-        return False 
+        return False
 
     def is_failed(self) -> bool:
         """
@@ -228,7 +228,7 @@ class Board(object):
         """
         for i in range(self.size[0]):
             for j in range(self.size[1]):
-                if self.__board[i, j] ==0:
+                if self.__board[i, j] == 0:
                     return self.apply_action((i, j, "reveal"), copy=False)
 
     # def get_square(self, cell: Tuple[int, int]) -> np.ndarray:

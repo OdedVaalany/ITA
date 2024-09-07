@@ -1,12 +1,13 @@
 import random
 from time import sleep
 
+import pygame
+
 # Example file showing a basic pygame "game loop"
 from board import Board
-from util import Counter
 from utils import *
 from time import time
-from itertools import combinations
+from itertools import combinations, product
 from collections import defaultdict
 
 
@@ -28,117 +29,123 @@ class dpll():
         self.revealed = 0
         self.satisfied = [[False for _ in range(
             self.cols)] for _ in range(self.rows)]
+        self.available_edges = [[0, i] for i in range(self.cols)] + \
+                               [[self.rows - 1, i] for i in range(self.cols)] + \
+                               [[i, 0] for i in range(self.rows)] + \
+                               [[i, self.cols - 1]
+                                   for i in range(1, self.rows)]
 
     def get_pure_literals(self, clauses):
         res = []
         for clause in clauses:
             if len(clause) == 1:
-
                 res.append(list(clause)[0])
         return res
 
     def dp_solve(self, clauses, assignment, addition_to_assignment):
-        # print("assignment", assignment)
         if not clauses:
             # Base case: no more clauses to satisfy, return the current assignment
-            # print(type(assignment))
-
             return True, assignment
         # Base case: if any clause is empty, the assignment is unsatisfiable
         if any(not clause for clause in clauses):
             return False, []
 
         pure_literals = self.get_pure_literals(clauses)
-
         if pure_literals:
-            literal = pure_literals.pop()
-            new_clauses = self.simplify(clauses, literal)
-            addition_to_assignment = [literal]
+            new_clauses = self.simplify(clauses, pure_literals)
+            for lit in pure_literals:
+                if lit not in assignment:
+                    addition_to_assignment.append(lit)
             assignment = assignment + addition_to_assignment
             sat, assi = self.dp_solve(
                 new_clauses, assignment, addition_to_assignment)
-
             return sat, assi
 
         # nothing added by unary simplifying by one literal
         if addition_to_assignment == []:
-            literal = self.choose_literal(clauses)
-            new_clauses = self.simplify(clauses, literal)
-            addition_to_assignment = [literal]
+            literals = self.choose_literal(clauses)
+            new_clauses = self.simplify(clauses, literals)
+            addition_to_assignment += literals
             assignment = assignment + addition_to_assignment
             return self.dp_solve(new_clauses, assignment, addition_to_assignment)
 
         return True, assignment
 
-    def simplify(self, clauses, literal):
-        new_clauses = []
+    def simplify(self, clauses, literals):
+        new_clauses = set()
         for clause in clauses:
-            if literal in clause:
-                new_clause = [l for l in clause if l != literal]
-                if new_clause:
-                    new_clauses.append(frozenset(new_clause))
-
-            elif -literal in clause:
-                continue  # Clause not satisfied
-            else:
-                new_clauses.append(clause)
+            new_clause = [l for l in clause if l not in literals]
+            add_or_not = True
+            for lit in literals:
+                if -lit in new_clause:
+                    add_or_not = False
+            if new_clause and add_or_not:
+                new_clauses.add(frozenset(new_clause))
 
         return new_clauses
 
-    def clause1_in_clause2(self, cla1, cla2):
-        for lit in cla1:
-            if lit not in cla2:
+    def cla1_contain_cla2_no_sign(self, cla1, cla2):
+        for literal in cla2:
+            if literal not in cla1 and -literal not in cla1:
                 return False
         return True
 
-    def do_binary_simply(self, clauses):
-        # first try clauses of len 2:
+    def simplify_by_clause_longer_than_one_lit(self, clauses):
+
         for clause in clauses:
-            if len(clause) == 2:
-                opposite = frozenset([-lit for lit in clause])
-                if opposite in clauses:
-                    for other in clauses:
-                        if other == clause or other == opposite:
-                            continue
-                        if self.clause1_in_clause2(clause, other):
-                            to_check = frozenset(
-                                [lit for lit in other if lit not in clause] + [lit for lit in opposite])
-                            if to_check in clauses:
-                                return frozenset([lit for lit in other if lit not in clause])
-                        if self.clause1_in_clause2(opposite, other):
-                            to_check = frozenset(
-                                [lit for lit in other if lit not in opposite] + [lit for lit in clause])
-                            if to_check in clauses:
-                                return frozenset([lit for lit in other if lit not in opposite])
+            clause_contain_those = [cla for cla in clauses
+                                    if self.cla1_contain_cla2_no_sign(clause, cla) if len(cla) != len(clause)]
+            if len(clause_contain_those) == 0:
+                continue
+            new_clause = []
+            for lit in clause:
+                new_clause.append(lit)
+            for cla in clause_contain_those:
+                count_pos = 0
+                for lit in cla:
+                    if lit in new_clause:
+                        new_clause.remove(lit)
+                        if lit > 0:
+                            count_pos += 1
+
+                    if -lit in new_clause:  # not a good assignment.
+                        new_clause.remove(-lit)
+                        if lit < 0:
+                            count_pos += 1
+
+                if count_pos != sum(1 for lit in cla if lit > 0):
+                    break
+
+                pos = [lit for lit in new_clause if lit > 0]
+                if len(pos) == len(new_clause) or len(pos) == 0:
+                    if len(new_clause) == 0:
+                        return None
+                    return new_clause
         return None
 
-    def simplify_by_clause_longer_than_one_lit(self, clauses):
-        clause_to_assign = self.do_binary_simply(clauses)
-        if clause_to_assign != None:
-            for lit in clause_to_assign:
-                return lit
-        return None
+    def get_corners_or_edges_available(self):
+        avilable = self.board.avilable_states
+        if [0, 0] in avilable:
+            return [-1]
+        elif [0, self.cols - 1] in avilable:
+            return [-self.cols]
+        elif [self.rows - 1, 0] in avilable:
+            return [-((self.rows - 1) * self.cols + 1)]
+        elif [self.rows - 1, self.cols - 1] in avilable:
+            return [- self.cols * self.rows]
+        for cell in self.available_edges:
+            if cell in avilable:
+                return [-self.cell_to_var(cell)]
+            else:
+                self.available_edges.remove(cell)
+        return [-self.cell_to_var(random.choice(avilable))]
 
     def choose_literal(self, clauses):
         # check the option of multy simplifying to get some smart decision
-        l = self.simplify_by_clause_longer_than_one_lit(clauses)
-        if l != None:
-            return l
-        # need to guess
-        for clause in clauses:
-            for literal in clause:
-                if literal < 0:
-                    return literal
-
-    def guess(self):
-        # random choice that can have an heuristic to a smarter choice.
-        unrevealed_cells = self.board.avilable_states
-        if len(unrevealed_cells) == 0:
-            return None  # No cells to reveal
-
-            # For simplicity, just return a random choice from unrevealed cells
-        res = random.choice(unrevealed_cells)
-        return (res[0], res[1])
+        to_assign = self.simplify_by_clause_longer_than_one_lit(clauses)
+        if to_assign != None:
+            return to_assign
+        return self.get_corners_or_edges_available()
 
     def hundle_click(self, event_name, x, y):
         click_func = self.board.reveal
@@ -154,54 +161,46 @@ class dpll():
                 k, j = self.var_to_cell(-i)
                 if not self.board.is_revealed(k, j):
                     self.board.apply_action((k, j, "reveal"))
-                    boards.append(self.board.copy())
                     self.hundle_click("open", k, j)
-                    if self.board.is_failed() or self.board.is_solved():
-                        # print("is a bomb in apply assignment", k, j)
-                        # self.hundle_click("open", k, j)
-
-                        return boards
-        return boards
+            else:
+                k, j = self.var_to_cell(i)
+                if not self.board.is_marked(k, j):
+                    self.hundle_click("mark", k, j)
+                    self.board.apply_action((k, j, "mark"))
+                    # boards.append(self.board.copy())
+        return [self.board.copy()]
 
     def run(self):
         boards = []
-        cell = self.guess()
-        if cell == None:
-            return
-        # in the first version we are going to guess just cells to open.
-        # next we will add marking.
-
-        if self.board.is_bomb(cell[0], cell[1]):
-            self.hundle_click("open", cell[0], cell[1])
-            return [self.board.copy()]
-        else:
-            self.hundle_click("open", cell[0], cell[1])
-
-        boards += self.run_iteration()
-
+        cell = self.var_to_cell(-self.get_corners_or_edges_available()[0])
+        self.board.apply_action((cell[0], cell[1], "reveal"))
+        self.hundle_click("open", cell[0], cell[1])
+        boards += self.run_game()
         return boards
 
-    def run_iteration(self):
+    def run_game(self):
         res = []
-        for i in range(self.board.size[0]*self.board.size[1]):
+        while len(self.board.avilable_states) > 0:
+            # self.show()
             clauses = self.generate_cnf_clauses()
-            satisfiable, assignments = self.dp_solve(clauses, [], [])
+            if len(clauses) == 0:
+                guess = self.get_corners_or_edges_available()
+                assignments = guess
+                satisfiable = True
+            else:
+                satisfiable, assignments = self.dp_solve(clauses, [], [])
             if satisfiable:
-                # print("SATISFIABLE: ", assignments)
-                boards = self.apply_assignment(assignments)
-
-                if len(boards) > 0:
-                    this_apply = boards[-1]
-                    if this_apply.is_failed() or this_apply.is_solved():
-                        res += boards
-                        return res
-                    else:
-                        res += boards
-
-            # else:
-            #     pass
-                # print("UNSATISFIABLE")
-                # res.append(self.board.copy())
+                board = self.apply_assignment(assignments)
+                this_apply = board[0]
+                res += board
+                if this_apply.is_failed() or this_apply.is_solved():
+                    if this_apply.is_solved():
+                        for cell in self.board.avilable_states:
+                            self.board.apply_action(
+                                (cell[0], cell[1], "reveal"))
+                            self.hundle_click("open", cell[0], cell[1])
+                        res += [self.board]
+                    return res
         return res
 
     def get_neighbors(self, i, j):
@@ -270,7 +269,7 @@ class dpll():
 
     def cell_to_var(self, cell):
         i, j = cell
-        return i * self.rows + j + 1
+        return i * self.cols + j + 1
 
     def var_to_cell(self, var):
         i = var // self.cols
@@ -280,9 +279,3 @@ class dpll():
             i -= 1
             j = self.cols - 1
         return i, j
-
-
-if __name__ == "__main__":
-    board = Board((16, 16))
-    dpll_agent = dpll(board)
-    res = dpll_agent.run()
