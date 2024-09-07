@@ -28,6 +28,8 @@ parser.add_argument("--epoch", "-e", type=int, default=100,
                     help="The time for state in ms, when using not humen interaction and allow ui to be True")
 parser.add_argument("--output", "-o", type=str, default=None,
                     help="The output folder to save the result")
+parser.add_argument("--density_test", "-dt", action="store_true")
+parser.add_argument("--size_test", "-st", action="store_true")
 
 
 def get_agent(agent_type: Literal["search", "knowledge", "decision", "manual"]):
@@ -53,8 +55,7 @@ def check_folder(path: str):
     return os.path.exists(path) and os.path.isdir(path)
 
 
-def simulate_single_run(level: str, ag: Agent):
-    board = get_board(level)
+def simulate_single_run(level: str, ag: Agent, board: Board):
     agent = ag(board)
     start_time = time.time()
     states = agent.run()
@@ -62,6 +63,68 @@ def simulate_single_run(level: str, ag: Agent):
     result = 0 if states[-1].is_solved() else (
         1 if states[-1].is_failed() else 2)
     return level, result, len(states), delta
+
+
+def simulate_multirun_dt(args: argparse.Namespace):
+    counter = [0, 0, 0]  # Success, Failed, Unknown
+    time_counter = [0, 0, 0]  # Success, Failed, Unknown
+    steps_size = [0, 0, 0]  # Success, Failed, Unknown
+    result_map = ["Success", "Failed", "Unknown"]
+    with open(os.path.join(args.output, f'logs_{ag.__name__}_level_{args.level}.txt'), "w") as f:
+        f.write("Game,Level,Result,Num of steps,Time,Density\n")
+        for dens in range(10, 70, 5):
+            with ProcessPoolExecutor(max_workers=7) as executor:
+                futures = [executor.submit(simulate_single_run, args.level, ag, Board((16, 16), dens))
+                           for i in range(args.num_of_games)]
+                for i, future in tqdm(enumerate(as_completed(futures)), total=args.num_of_games):
+                    level, result, steps, time = future.result()
+                    f.write(f"{i},{level},{result},{steps},{time},{dens}\n")
+                    f.flush()
+                    counter[result] += 1
+                    steps_size[result] += steps
+                    time_counter[result] += time
+    print(f"Agent {ag.__name__} for level {args.level}")
+    print('\n'*1)
+    print("{:10} | {:8} | {:10} | {:10} | {:10} | {:10}".format(
+        "Achivement", "total", "total time", "total steps", "avg time", "avg steps"))
+    print('-'*100)
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "Won", counter[0], time_counter[0], steps_size[0], 0 if counter[0] == 0 else time_counter[0]/counter[0], 0 if counter[0] == 0 else steps_size[0]/counter[0]))
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "Fail", counter[1], time_counter[1], steps_size[1], 0 if counter[1] == 0 else time_counter[1]/counter[1], 0 if counter[1] == 0 else steps_size[1]/counter[1]))
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "No Op", counter[2], time_counter[2], steps_size[2], 0 if counter[2] == 0 else time_counter[2]/counter[2], 0 if counter[2] == 0 else steps_size[2]/counter[2]))
+
+
+def simulate_multirun_st(args: argparse.Namespace):
+    counter = [0, 0, 0]  # Success, Failed, Unknown
+    time_counter = [0, 0, 0]  # Success, Failed, Unknown
+    steps_size = [0, 0, 0]  # Success, Failed, Unknown
+    result_map = ["Success", "Failed", "Unknown"]
+    with open(os.path.join(args.output, f'logs_{ag.__name__}_level_{args.level}.txt'), "w") as f:
+        f.write("Game,Level,Result,Num of steps,Time,size\n")
+        for size in range(8, 33):
+            with ProcessPoolExecutor(max_workers=7) as executor:
+                futures = [executor.submit(simulate_single_run, args.level, ag, Board((8, 8), 0.2))
+                           for i in range(args.num_of_games)]
+                for i, future in tqdm(enumerate(as_completed(futures)), total=args.num_of_games):
+                    level, result, steps, time = future.result()
+                    f.write(f"{i},{level},{result},{steps},{time},{size}\n")
+                    f.flush()
+                    counter[result] += 1
+                    steps_size[result] += steps
+                    time_counter[result] += time
+    print(f"Agent {ag.__name__} for level {args.level}")
+    print('\n'*1)
+    print("{:10} | {:8} | {:10} | {:10} | {:10} | {:10}".format(
+        "Achivement", "total", "total time", "total steps", "avg time", "avg steps"))
+    print('-'*100)
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "Won", counter[0], time_counter[0], steps_size[0], 0 if counter[0] == 0 else time_counter[0]/counter[0], 0 if counter[0] == 0 else steps_size[0]/counter[0]))
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "Fail", counter[1], time_counter[1], steps_size[1], 0 if counter[1] == 0 else time_counter[1]/counter[1], 0 if counter[1] == 0 else steps_size[1]/counter[1]))
+    print("{:10} | {:8} | {:10.4f} | {:10} | {:10.4f} | {:10.0f}".format(
+        "No Op", counter[2], time_counter[2], steps_size[2], 0 if counter[2] == 0 else time_counter[2]/counter[2], 0 if counter[2] == 0 else steps_size[2]/counter[2]))
 
 
 def simulate_multirun(args: argparse.Namespace):
@@ -72,7 +135,7 @@ def simulate_multirun(args: argparse.Namespace):
     with open(os.path.join(args.output, f'logs_{ag.__name__}_level_{args.level}.txt'), "w") as f:
         f.write("Game,Level,Result,Num of steps,Time\n")
         with ProcessPoolExecutor(max_workers=7) as executor:
-            futures = [executor.submit(simulate_single_run, args.level, ag)
+            futures = [executor.submit(simulate_single_run, args.level, get_board(args.level))
                        for i in range(args.num_of_games)]
             for i, future in tqdm(enumerate(as_completed(futures)), total=args.num_of_games):
                 level, result, steps, time = future.result()
@@ -148,6 +211,16 @@ if __name__ == "__main__":
         agent = agents[0](get_board(args.level))
         states = agent.run()
         ShowUI(states, args.epoch).run()
+    elif args.density_test:
+        if not args.output:
+            args.output = os.path.dirname(__file__)
+        for ag in agents:
+            simulate_multirun_dt(args)
+    elif args.size_test:
+        if not args.output:
+            args.output = os.path.dirname(__file__)
+        for ag in agents:
+            simulate_multirun_st(args)
     else:
         if not args.output:
             args.output = os.path.dirname(__file__)
